@@ -64,15 +64,18 @@ read_translations, write_translations
 
 ### ただし可否とは別に残る事実
 
-- 構築には自作アプリ（App Proxy + サーバー + ホスティング）と Validation Function が必要。コードとデプロイが伴う（構成によりサーバー不要にもできる。[serverless-options.md](./research/serverless-options.md)）
 - 日常運用（派遣元追加、卒業処理、商品・在庫、発送）は管理画面で完結する
 - 銀行振込の消込は毎日の手作業になる
 - 開発ストアでは実決済を通せないため、代引き・銀行振込のエンドツーエンドは移管・契約後にしか確認できない
 
+## 決定: 購入導線の構成は B（2026-09-21、Issue #1）
+
+**サーバー不要の構成B（Shopify Forms による登録 + Validation Function による購入ゲート）を採用する。** 保守を続ける予定がないため、自社サーバーを持つ構成A・Cは除外した。注文スナップショット（ロイヤリティ集計の自動化・Shopify Flow）は nice to have に格下げし、Flowが本番プランで動くかどうかは構成選択のブロッカーではなくなった。詳細と理由は [serverless-options.md](./research/serverless-options.md) の「決定」節を参照。
+
 ## 未検証・推論で代替している項目
 
-- Shopify Forms経由の顧客作成 → 初回サインインの結合（[customer-accounts.md](./research/customer-accounts.md)。開発環境のUI不安定により未実証、推論で「成立する」とみなして先に進んでいる）
-- Shopify Flowでの注文スナップショット自動化（[serverless-options.md](./research/serverless-options.md)。開発ストアのプラン判定の都合で未実行。本番プラン契約後に確認）
+- Shopify Forms経由の顧客作成 → 初回サインインの結合（[customer-accounts.md](./research/customer-accounts.md)。開発環境のUI不安定により未実証、推論で「成立する」とみなして先に進んでいる。中核機能に関わるため引き続き本番構築時の確認を推奨）
+- Shopify Flowでの注文スナップショット自動化（[serverless-options.md](./research/serverless-options.md)。nice to have に格下げ済みのため、動かなくても構築は止まらない）
 
 ## 現状のタスク管理
 
