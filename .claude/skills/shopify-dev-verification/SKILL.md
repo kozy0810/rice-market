@@ -26,6 +26,8 @@ description: rice-marketプロジェクトのShopify（Devストア・カスタ�
 - **Admin API のスコープは都度必要な分しか付与されていない。** 新しいオブジェクト（注文、下書き注文、メタオブジェクト定義など）を触る前に `shopify store auth --scopes ...` で再認証する
 - **管理画面の埋め込みiframe（アプリ管理画面など）はクロスオリジンで、`find`/`get_page_text` から中身が見えない。** 座標クリックに頼らざるを得ないが、反応しないことがある。数回試してダメなら別ルート（API直叩き、別ページ経由）を探す
 - **メタオブジェクトを管理画面から作成すると、ハンドルが自動生成され読みにくい値になる。** API作成時の任意ハンドルとは異なる。タグ等に使う場合は要注意（`docs/research/metaobjects.md` 参照）
+- **`shopify store execute`（`shopify store auth`のCLIセッション）からは、他アプリ（例: `rice-market-app`）が所有するメタオブジェクトが見えない。** `read_metaobjects`スコープを付与しても`metaobjectDefinitions`/`metaobjects`クエリが空で返る。実機確認は管理画面UI（コンテンツ > メタオブジェクト）で行うこと
+- **`apps/shopify-app/`のようにローカルの`.shopify/`を含めずGit管理すると、`shopify app info`が「Dev store: Not yet configured」になる。** `shopify app dev --store <ストア>`を一度実行すれば紐付く（インストールされていなければ同時にインストールもされる）
 
 ## 記録のフォーマット
 
