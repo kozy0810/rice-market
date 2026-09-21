@@ -4,11 +4,11 @@
 
 ## ディレクトリ構成
 
-`rice-market-app/`・`rice-market-app-extonly/` はDevストアでの検証用サンドボックスで、Git管理しない（`.gitignore`対象）。本番実装は以下のモノレポ構成で進める。
+`tmp/rice-market-app/`・`tmp/rice-market-app-extonly/` はDevストアでの検証用サンドボックス（Git管理外）。実装コードは検証しながら `apps/`・`themes/` 配下へ移していく。
 
 ```
 apps/
-  shopify-app/    # カスタムアプリ本体（Admin API・App Proxy・Cart Validation Functionなど）
+  shopify-app/    # カスタムアプリ本体（Cart Validation Function・派遣元メタオブジェクト定義）
 themes/
   storefront/     # Shopifyテーマ（公式テーマ「Dawn」をベースにカスタマイズ）
 docs/

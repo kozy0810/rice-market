@@ -1,1 +1,9 @@
 tmp/
+node_modules/
+dist/
+generated/
+.shopify/
+.env
+.env.*
+*.log
+.DS_Store
