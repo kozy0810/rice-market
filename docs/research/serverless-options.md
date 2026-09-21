@@ -1,0 +1,99 @@
+# サーバーレス構成の可否
+
+App Proxy 方式（[app-proxy-signup.md](./app-proxy-signup.md)）は実証済みだが、独自サーバーのホスティングと保守が必要になる。これを公式アプリで置き換えられるかを検証した。
+
+## 何にサーバーが必要で、何に不要か
+
+| 構成要素 | 独自サーバー | 理由 |
+|---|---|---|
+| Validation Function（購入ゲート） | 不要 | WASM にコンパイルされ Shopify のインフラ上で実行される |
+| メタオブジェクト（派遣元マスタ） | 不要 | 管理画面ネイティブ |
+| 注文タグによる集計 | 不要 | 管理画面ネイティブ |
+| App Proxy の登録フォーム | 必要 | App Proxy は自分の URL にリクエストを転送する仕組み |
+| ORDERS_CREATE webhook | 必要 | webhook の受け口 |
+
+重要な性質として、**サーバーが落ちても購入は止まらない**。Validation Function は Shopify 側で動くため、既存会員の購入とゲートは無関係に機能し続ける。影響を受けるのは新規登録と注文スナップショットだけである。
+
+## Shopify Forms — 登録フォームの代替として成立する
+
+公式・無料。開発ストア（Basic App Development）にインストールでき、動作した。
+
+フォーム編集画面に「タグ」セクションがあり、説明は「お客様がこのフォームを送信した際に、デフォルトのタグに加えて、さらにお客様タグを追加します。」。実際に `member` と `org:agency-sakura` の2つを設定できることを確認した。**ノーコードで派遣元タグを付与できる。**
+
+さらに配置の項目に「新しいランディングページ」があり、**このフォーム専用のページをオンラインストアに生成できる**。派遣元ごとにフォームとランディングページを1組ずつ作れば、派遣元ごとの登録URLが成立する。インラインフォームとポップアップフォームの2種類があり、ページ埋め込みにはインラインを使う。ベトナム語を含む多言語の翻訳にも対応している。
+
+**判定: 登録フォームはサーバーなしで代替できる。**
+
+ただし URL の形は変わる。
+
+| 方式 | URL |
+|---|---|
+| App Proxy（実証済み） | `https://example.com/a/signup/7f3a9c2e5b81` |
+| Shopify Forms | `https://example.com/pages/<推測困難なハンドル>` |
+
+どちらも「URLを知っている人だけが登録できる」という性質は同じで、URLが漏れたときの危険度も同じである。失効はページを削除または非公開にすれば済む。
+
+Forms 経由で作成した顧客が初回サインインと正しく結合するかは未実証。詳細は [customer-accounts.md](./customer-accounts.md) を参照。
+
+## Shopify Flow — Basic では使えるが、この開発ストアでは検証できない
+
+公式・無料。インストールはできたが、開くと次の表示になった。
+
+> 現在のプランではFlowをご利用いただけません
+> Flowは、Basic、Retail、Shopify、Advanced、Plusの各プランでご利用いただけます。
+
+つまり**本番の Basic プランでは利用できる**が、開発ストアのプラン（`Basic App Development`）では動かせない。**注文スナップショットを Flow で代替できるかどうかは、この開発ストアでは判定できない。**
+
+### 仕様上は成立する（実行確認は本番プラン必要）
+
+開発ストアでは Flow を開けないため実行できないが、公式ドキュメントで必要な機能が揃っていることを確認した。
+
+**「Add order tags」アクションが存在する**（`tagsAdd` mutation を使用）
+出典: https://help.shopify.com/en/manual/shopify-flow/reference/actions
+
+**アクションのテキストフィールドで Liquid が使える**
+
+> You can add variables using Liquid to any text field that contains the Add a variable link.
+
+**注文トリガーから顧客タグを参照できる**
+
+```liquid
+{% for tag in order.customer.tags %}
+  {{ tag }}
+{% endfor %}
+```
+
+出典: https://help.shopify.com/en/manual/shopify-flow/reference/variables
+
+したがって「注文が作成されたとき、顧客の `org:` で始まるタグを注文タグにコピーする」というワークフローは、**派遣元ごとにルールを作らなくても1本で書ける見込み**である。
+
+```liquid
+{% for tag in order.customer.tags %}{% if tag contains 'org:' %}{{ tag }}{% endif %}{% endfor %}
+```
+
+**ただし実際に動かしての確認はできていない。** 本番プラン契約後、または Flow が動くプランのストアでないと判定できない。
+
+## 構成の選択肢
+
+| 構成 | 登録フォーム | 注文スナップショット | サーバー |
+|---|---|---|---|
+| A. App Proxy 方式 | 自作アプリ（実証済み） | webhook（実証済み） | 必要 |
+| B. 公式アプリ方式 | Shopify Forms（実証済み） | Shopify Flow（未検証） | **不要** |
+| C. 併用 | Shopify Forms | webhook | 必要 |
+
+B が成立すれば**サーバーもホスティングも完全に不要**になり、構築後は管理画面だけで回る。Validation Function だけはコードとデプロイが残るが、これは一度作れば変更頻度が低い。**B の可否は Flow の検証にかかっている。**
+
+## 補足: サーバーが必要な場合でも構成は軽い
+
+1ストア専用のカスタムアプリであれば Admin API のアクセストークンは固定値でよく、OAuth のセッション管理が不要になる。検証で使った reactRouter テンプレートには Prisma + SQLite のセッションストアが含まれるが、本番では省ける見込みが高い。
+
+サーバーレス関数1つに以下を載せれば足りる。
+
+```
+GET  /a/signup/:token          → 派遣元を引いてフォーム表示
+POST /a/signup/:token          → customerCreate
+POST /webhooks/orders/create   → 注文にタグとメタフィールドを書き込み
+
+環境変数: アクセストークン、HMAC検証用シークレット
+データベース: 不要
+```

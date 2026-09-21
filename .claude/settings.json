@@ -1,0 +1,27 @@
+{
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(gh *)",
+      "Bash(shopify *)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
+      "Bash(git log)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git branch)",
+      "Bash(git branch *)",
+      "Bash(curl * localhost*)",
+      "Bash(curl * 127.0.0.1*)",
+      "Bash(cat *)",
+      "Bash(ls)",
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Bash(find *)"
+    ]
+  }
+}

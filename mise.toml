@@ -1,0 +1,7 @@
+[tools]
+node = "24"
+pnpm = "12.5.1"
+
+[tasks.install]
+description = "Install all workspace dependencies"
+run = "pnpm install"
