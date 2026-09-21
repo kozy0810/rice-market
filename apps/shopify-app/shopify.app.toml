@@ -34,6 +34,12 @@ name = "組織名"
 type = "single_line_text_field"
 required = true
 
+[metaobjects.app.dispatch_org.fields.org_code]
+name = "識別コード"
+description = "顧客・注文タグ「org:<このコード>」に使う短い識別子。半角英数字とハイフンのみ（例: sakura）。Formでタグを設定する担当者はここを見て入力する"
+type = "single_line_text_field"
+required = true
+
 [metaobjects.app.dispatch_org.fields.active]
 name = "有効"
 type = "boolean"
