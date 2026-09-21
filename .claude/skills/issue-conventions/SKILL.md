@@ -52,3 +52,7 @@ gh project item-add 5 --owner kozy0810 --url https://github.com/kozy0810/rice-ma
 ## 作成前に
 
 既知のタスク全体像は GitHub Issues + プロジェクト「Rice Market」（`gh project view 5 --owner kozy0810`）にある。新しいIssueが既存のIssueと矛盾しないか、重複しないかを確認してから作る。
+
+## ブランチとマージ
+
+リポジトリへの変更は必ずブランチを切ってから行う（`main` に直接コミットしない）。PRは**必ず squash and merge** を使う（`gh pr merge --squash`）。マージ後はローカル・リモート双方のブランチを削除して `main` を同期する。
