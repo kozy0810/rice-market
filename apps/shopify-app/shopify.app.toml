@@ -1,0 +1,42 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "b0dd961ec019c49075a18880a42eb320"
+name = "rice-market-app"
+application_url = "https://shopify.dev/apps/default-app-home"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-10"
+
+[access.admin]
+direct_api_mode = "online"
+embedded_app_direct_api_access = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products,read_customers,write_customers,read_metaobjects,write_metaobjects"
+
+[auth]
+redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+
+[metaobjects.app.dispatch_org]
+name = "派遣元組織"
+description = "技能実習生の派遣元マスタ。会員登録時に付与するタグの根拠になる"
+
+  [metaobjects.app.dispatch_org.access]
+  admin = "merchant_read_write"
+
+[metaobjects.app.dispatch_org.fields.org_name]
+name = "組織名"
+type = "single_line_text_field"
+required = true
+
+[metaobjects.app.dispatch_org.fields.active]
+name = "有効"
+type = "boolean"
+
+[sidekick]
+extensions_summary = "購入ゲート（Cart Validation Function）と派遣元マスタ（メタオブジェクト）を持つ"
