@@ -175,7 +175,7 @@
         render 'header-drawer', show_country_selector: country_selector, show_language_selector: language_selector, show_social_links: social_links
       endif
 
-      if render_search_left
+      if render_search_left and section.settings.enable_search
         render 'header-search', input_id: 'Search-In-Modal-1'
       endif
     -%}
@@ -280,7 +280,9 @@
           </localization-form>
         {%- endif -%}
       </div>
-      {% render 'header-search', input_id: 'Search-In-Modal' %}
+      {%- if section.settings.enable_search -%}
+        {% render 'header-search', input_id: 'Search-In-Modal' %}
+      {%- endif -%}
 
       {%- if shop.customer_accounts_enabled -%}
         <shopify-account
@@ -620,6 +622,12 @@
     {
       "type": "header",
       "content": "t:sections.header.settings.header__utilities.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_search",
+      "default": true,
+      "label": "検索アイコンを表示する"
     },
     {
       "type": "checkbox",
