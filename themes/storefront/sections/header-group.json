@@ -38,6 +38,7 @@
         "menu_type_desktop": "dropdown",
         "sticky_header_type": "on-scroll-up",
         "show_line_separator": true,
+        "enable_search": false,
         "enable_country_selector": true,
         "enable_language_selector": true,
         "mobile_logo_position": "center",
