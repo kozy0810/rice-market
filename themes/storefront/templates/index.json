@@ -1,21 +1,21 @@
 {
   "sections": {
-    "image_banner": {
-      "type": "image-banner",
+    "rich_text_hero": {
+      "type": "rich-text",
       "blocks": {
         "heading": {
           "type": "heading",
           "settings": {
-            "heading": "Browse our latest products",
-            "heading_size": "h0"
+            "heading": "登録会員限定のお米通販",
+            "heading_size": "h1"
           }
         },
         "button": {
-          "type": "buttons",
+          "type": "button",
           "settings": {
-            "button_label_1": "Shop all",
-            "button_link_1": "shopify://collections/all",
-            "button_style_secondary_1": true,
+            "button_label": "商品を見る",
+            "button_link": "shopify://collections/all",
+            "button_style_secondary": false,
             "button_label_2": "",
             "button_link_2": "",
             "button_style_secondary_2": false
@@ -27,22 +27,18 @@
         "button"
       ],
       "settings": {
-        "image_overlay_opacity": 40,
-        "image_height": "large",
-        "desktop_content_position": "bottom-center",
-        "show_text_box": false,
-        "image_behavior": "none",
-        "desktop_content_alignment": "center",
-        "color_scheme": "scheme-3",
-        "mobile_content_alignment": "center",
-        "stack_images_on_mobile": false,
-        "show_text_below": false
+        "desktop_content_position": "center",
+        "content_alignment": "center",
+        "color_scheme": "scheme-1",
+        "full_width": true,
+        "padding_top": 52,
+        "padding_bottom": 52
       }
     },
     "featured_collection": {
       "type": "featured-collection",
       "settings": {
-        "title": "Featured products",
+        "title": "商品一覧",
         "heading_size": "h2",
         "description": "",
         "show_description": false,
@@ -69,7 +65,7 @@
     }
   },
   "order": [
-    "image_banner",
+    "rich_text_hero",
     "featured_collection"
   ]
 }
