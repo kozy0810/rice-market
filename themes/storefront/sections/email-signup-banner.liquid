@@ -111,6 +111,19 @@
                       </span>
                     </button>
                   </div>
+                  <div class="field">
+                    <input
+                      id="DispatchOrg--{{ section.id }}"
+                      type="text"
+                      class="field__input"
+                      placeholder="組織名"
+                      aria-label="派遣元"
+                      disabled
+                    >
+                    <label class="field__label" for="DispatchOrg--{{ section.id }}">
+                      組織名
+                    </label>
+                  </div>
                   {%- if form.errors -%}
                     <small class="newsletter-form__message form__message" id="Newsletter-error--{{ section.id }}">
                       <span class="svg-wrapper">
