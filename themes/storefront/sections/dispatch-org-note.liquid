@@ -1,0 +1,24 @@
+<div class="page-width" style="padding-top: 12px; padding-bottom: 28px;">
+  <div class="field" style="max-width: 480px; margin: 0 auto;">
+    <input
+      id="DispatchOrgNote--{{ section.id }}"
+      type="text"
+      class="field__input"
+      placeholder="組織名"
+      aria-label="派遣元"
+      disabled
+    >
+    <label class="field__label" for="DispatchOrgNote--{{ section.id }}">
+      組織名
+    </label>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "派遣元表示（疑似項目）",
+  "tag": "section",
+  "class": "section",
+  "settings": []
+}
+{% endschema %}

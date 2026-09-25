@@ -15,7 +15,7 @@ export function cartValidationsGenerateRun(
   if (!customer?.isMember) {
     errors.push({
       message:
-        "このストアは登録された技能実習生のみ購入できます。派遣元から配布された登録URLをご確認ください。",
+        "このストアは登録された特定の会員様のみ購入できます。派遣元から配布された登録URLをご確認ください。",
       target: "$.cart",
     });
   }
