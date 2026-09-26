@@ -12,7 +12,7 @@
   "presets": {
     "Dawn": {
       "logo": "shopify://shop_images/icon-trimmed.png",
-      "logo_width": 160,
+      "logo_width": 70,
       "favicon": "shopify://shop_images/favicon-original.png",
       "customer_account_menu": "customer-account-main-menu",
       "color_schemes": {
