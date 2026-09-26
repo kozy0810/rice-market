@@ -3,25 +3,11 @@
     "main": {
       "type": "main-product",
       "blocks": {
-        "vendor": {
-          "type": "text",
-          "settings": {
-            "text": "{{ product.vendor }}",
-            "text_style": "uppercase"
-          }
-        },
         "title": {
           "type": "title"
         },
         "price": {
           "type": "price"
-        },
-        "variant_picker": {
-          "type": "variant_picker",
-          "settings": {
-            "picker_type": "button",
-            "swatch_shape": "circle"
-          }
         },
         "quantity_selector": {
           "type": "quantity_selector"
@@ -44,10 +30,8 @@
         }
       },
       "block_order": [
-        "vendor",
         "title",
         "price",
-        "variant_picker",
         "quantity_selector",
         "buy_buttons",
         "description",

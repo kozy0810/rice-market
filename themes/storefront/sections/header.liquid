@@ -284,23 +284,6 @@
         {% render 'header-search', input_id: 'Search-In-Modal' %}
       {%- endif -%}
 
-      {%- if shop.customer_accounts_enabled -%}
-        <shopify-account
-          menu="{{ settings.customer_account_menu | default: 'customer-account-main-menu' }}"
-          class="header__icon header__icon--account link focus-inset"
-        >
-          <span slot="signed-out-avatar" class="svg-wrapper">{{ 'icon-account.svg' | inline_asset_content }}</span>
-          <span slot="signed-out-avatar" class="visually-hidden">{{ 'customer.log_in' | t }}</span>
-        </shopify-account>
-      {%- endif -%}
-
-      {%- for block in section.blocks -%}
-        {%- case block.type -%}
-          {%- when '@app' -%}
-            {% render block %}
-        {%- endcase -%}
-      {%- endfor -%}
-
       <a href="{{ routes.cart_url }}" class="header__icon header__icon--cart link focus-inset" id="cart-icon-bubble">
         {% if cart == empty %}
           <span class="svg-wrapper">{{ 'icon-cart-empty.svg' | inline_asset_content }}</span>
@@ -317,6 +300,23 @@
           </div>
         {%- endif -%}
       </a>
+
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when '@app' -%}
+            {% render block %}
+        {%- endcase -%}
+      {%- endfor -%}
+
+      {%- if shop.customer_accounts_enabled -%}
+        <shopify-account
+          menu="{{ settings.customer_account_menu | default: 'customer-account-main-menu' }}"
+          class="header__icon header__icon--account link focus-inset"
+        >
+          <span slot="signed-out-avatar" class="svg-wrapper">{{ 'icon-account.svg' | inline_asset_content }}</span>
+          <span slot="signed-out-avatar" class="visually-hidden">{{ 'customer.log_in' | t }}</span>
+        </shopify-account>
+      {%- endif -%}
     </div>
   </header>
 </{{ header_tag }}>

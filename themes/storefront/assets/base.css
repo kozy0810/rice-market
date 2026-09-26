@@ -2090,8 +2090,8 @@ input[type='checkbox'] {
 
 .cart-count-bubble {
   position: absolute;
-  background-color: rgb(var(--color-button));
-  color: rgb(var(--color-button-text));
+  background-color: #f03c01;
+  color: #ffffff;
   height: 1.7rem;
   width: 1.7rem;
   border-radius: 100%;
@@ -2567,16 +2567,20 @@ input[type='checkbox'] {
   vertical-align: middle;
 }
 
-.header__icon,
-.header__icon--cart .icon {
+.header__icon {
   height: 4.4rem;
   width: 4.4rem;
   padding: 0;
 }
 
+.header__icon--cart .icon {
+  height: 2.8rem;
+  width: 2.8rem;
+}
+
 .header__icon--cart {
   position: relative;
-  margin-right: -1.2rem;
+  margin-right: 1.6rem;
 }
 
 .header__icon--menu[aria-expanded='true']::before {
