@@ -1,0 +1,34 @@
+{
+  "payload": {
+    "export": "cart-validations-generate-run",
+    "target": "cart.validations.generate.run",
+    "input": {
+      "cart": {
+        "buyerIdentity": {
+          "customer": {
+            "isMember": false
+          }
+        }
+      },
+      "localization": {
+        "language": {
+          "isoCode": "VI"
+        }
+      }
+    },
+    "output": {
+      "operations": [
+        {
+          "validationAdd": {
+            "errors": [
+              {
+                "message": "Cửa hàng này chỉ dành cho hội viên đã đăng ký. Vui lòng kiểm tra URL đăng ký do tổ chức phái cử của bạn cung cấp.",
+                "target": "$.cart"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
