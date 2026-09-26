@@ -34,15 +34,10 @@
       "settings": {
         "include_margins": true
       }
-    },
-    "dispatch_org_note": {
-      "type": "dispatch-org-note",
-      "settings": {}
     }
   },
   "order": [
     "main",
-    "dispatch_org_note",
     "179025088544ed95bd"
   ]
 }
