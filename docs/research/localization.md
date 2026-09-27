@@ -37,11 +37,27 @@ Localeをストアのプライマリーロケールと同じにすることは�
 
 このAPIには `read_translations` / `write_translations` スコープが必要（本アプリには付与済み）。`shopLocales` クエリ（`read_locales`/`read_markets_home` が必要）は未付与のため使えない。言語の追加・公開・プライマリー変更はAdmin UI（ブラウザ操作）で行う必要がある。
 
-## 現状（2026-09-27時点、Devストア）
+## リソースタイプ早見表（`translatableResources(resourceType: ...)`）
+
+商品タイトル・説明以外にも、`TranslatableResourceType` には次のような種類があり、それぞれ同じ `translationsRegister` の流れで翻訳を登録できる。
+
+| 内容 | resourceType | 備考 |
+|---|---|---|
+| 商品タイトル・説明 | `PRODUCT` | key: `title` / `body_html` |
+| 商品オプション名（例:「サイズ」） | `PRODUCT_OPTION` | key: `name`。カートの「サイズ:」表記はここが原因だった |
+| ナビゲーションメニューの項目名 | `LINK` | key: `title`。`MENU`自体はメニュー名（例:"Main menu"）で項目とは別 |
+| テーマJSONテンプレートの設定値（トップページのボタン文言・見出しなど） | `ONLINE_STORE_THEME_JSON_TEMPLATE` | key例: `section.index.json.rich_text_hero.button.button_label:<block_id>` のように、テンプレート内のブロックIDを含む長い形式 |
+| 配送方法名（例:「通常配送」） | `DELIVERY_METHOD_DEFINITION` | key: `name` |
+| 手動決済方法の名称・説明文（Cash on Delivery、Bank Depositなど） | `PAYMENT_GATEWAY` | key: `name` / `message` / `before_payment_instructions` |
+| ポリシーページ（返品ポリシー等） | `SHOP_POLICY` | |
+
+`resourceType`を間違えると「Expected type 'TranslatableResourceType!'」で弾かれるので、`__type(name: "TranslatableResourceType") { enumValues { name } }` で正式名を確認してから使うとよい。
+
+## 現状（2026-09-28時点、Devストア）
 
 - プライマリーロケール: 日本語（もともと英語だったが切り替え済み）
 - 公開済み言語: 日本語（プライマリー）、英語、ベトナム語、中国語（簡体字）
-- コシヒカリ 5kg/10kg/30kgの3商品について、タイトル・説明（`body_html`）を英語・ベトナム語・中国語（簡体字）で翻訳登録済み。実店舗で `/en/` `/vi/` `/zh/` 各URLで表示確認済み
+- 翻訳登録済み: コシヒカリ 5kg/10kg/30kgのタイトル・説明、商品オプション名「サイズ」、ヘッダーメニュー（ホーム/商品一覧/お問い合わせ）、トップページのボタン文言・「商品一覧」見出し、配送方法名「通常配送」、手動決済方法（Cash on Delivery / Bank Deposit）の支払い案内文。いずれも英語・ベトナム語・中国語（簡体字）で登録し、実店舗で `/en/` `/vi/` `/zh/` 表示を確認済み
 - 中国語は簡体字のみ登録（繁体字は未登録・未公開）
 - テーマの汎用文言（Add to cart、数量、税込み表記など）はDawn標準の `locales/*.json` でもともと多言語対応済みなので、上記の翻訳登録とは別に最初から動く
-- 未対応: 配送方法名（「通常配送」）、トップページのヒーローコピー（`templates/index.json`）、特商法・返品ポリシー等（ページ自体が未作成）
+- 未対応: 特商法・返品ポリシー等（ページ自体が未作成、Issue #2待ち）
