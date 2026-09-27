@@ -125,7 +125,7 @@
                       {%- if cart.duties_included and cart.taxes_included -%}
                         {{ 'products.product.duties_and_taxes_included' | t }}
                       {%- elsif cart.taxes_included -%}
-                        税込み
+                        {{ 'products.product.taxes_included' | t }}
                       {%- elsif cart.duties_included -%}
                         {{ 'products.product.duties_included' | t }}
                       {%- endif -%}

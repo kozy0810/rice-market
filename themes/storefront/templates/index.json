@@ -3,13 +3,6 @@
     "rich_text_hero": {
       "type": "rich-text",
       "blocks": {
-        "heading": {
-          "type": "heading",
-          "settings": {
-            "heading": "登録会員限定のお米通販",
-            "heading_size": "h1"
-          }
-        },
         "button": {
           "type": "button",
           "settings": {
@@ -23,7 +16,6 @@
         }
       },
       "block_order": [
-        "heading",
         "button"
       ],
       "settings": {
