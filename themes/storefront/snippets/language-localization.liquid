@@ -1,9 +1,24 @@
 {%- comment -%}
   Renders the language picker for the localization form
+  Display order: 日本語 → English → その他（他は available_languages の順序のまま）
 
   Accepts:
     - localPosition: pass in the position in which the form is coming up to create specific IDs
 {%- endcomment -%}
+
+{%- assign lang_sort_keys = '' -%}
+{%- for language in localization.available_languages -%}
+  {%- case language.iso_code -%}
+    {%- when 'ja' -%}
+      {%- assign lang_priority = '0' -%}
+    {%- when 'en' -%}
+      {%- assign lang_priority = '1' -%}
+    {%- else -%}
+      {%- assign lang_priority = '9' -%}
+  {%- endcase -%}
+  {%- assign lang_sort_keys = lang_sort_keys | append: lang_priority | append: '_' | append: language.iso_code | append: '|' -%}
+{%- endfor -%}
+{%- assign lang_sort_keys = lang_sort_keys | split: '|' | sort -%}
 
 <div class="disclosure">
   <button
@@ -18,7 +33,12 @@
   </button>
   <div class="disclosure__list-wrapper language-selector" hidden>
     <ul id="{{ localPosition }}List" role="list" class="disclosure__list list-unstyled">
-      {%- for language in localization.available_languages -%}
+      {%- for sort_key in lang_sort_keys -%}
+        {%- assign target_code = sort_key | split: '_' | last -%}
+        {%- for language in localization.available_languages -%}
+          {%- unless language.iso_code == target_code -%}
+            {%- continue -%}
+          {%- endunless -%}
         <li class="disclosure__item" tabindex="-1">
           <a
             class="link link--text disclosure__link caption-large focus-inset"
@@ -42,6 +62,7 @@
             </span>
           </a>
         </li>
+        {%- endfor -%}
       {%- endfor -%}
     </ul>
   </div>
