@@ -3,6 +3,7 @@
     "main": {
       "type": "main-page",
       "settings": {
+        "text_alignment": "center",
         "padding_top": 28,
         "padding_bottom": 28
       }
