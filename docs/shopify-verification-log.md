@@ -1,6 +1,6 @@
 # Shopify 実現可能性 検証ログ
 
-最終更新: 2026-09-21
+最終更新: 2026-09-29
 
 対象要件は `docs/human/requirements.md`。個別の調査結果は `docs/research/` 配下にトピックごとに分けてある。**Shopifyの仕様について不明点があれば、まずこのページの一覧から該当する研究ファイルを確認する。**
 
@@ -41,6 +41,7 @@ read_translations, write_translations
 | [checkout.md](./research/checkout.md) | 決済手段・重量別送料・多言語のチェックアウト実機確認 |
 | [royalty-snapshot.md](./research/royalty-snapshot.md) | 注文時点の派遣元スナップショットとロイヤリティ集計 |
 | [git-management.md](./research/git-management.md) | Shopifyのコード・設定のGit管理可否、テーマ+アプリ構成の制約 |
+| [signup-url-handle.md](./research/signup-url-handle.md) | 会員登録ページのURLハンドル推測困難化、handleへのスラッシュ不可、sitemap自動掲載とseo.hiddenメタフィールドによる除外 |
 
 ## 可否判定のまとめ
 
