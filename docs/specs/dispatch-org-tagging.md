@@ -27,7 +27,9 @@ Issue #5 の実装仕様。関連する調査結果は `docs/research/metaobject
 1. 派遣元マスタ（メタオブジェクト）に新しい派遣元を追加し、`org_code` を決めて入力する
 2. Shopify Forms でその派遣元用のフォームを作り、タグ欄に `member` と `org:<org_code>`（1で決めた値）を設定する
 3. フォームの「新しいランディングページ」機能で登録用ページを作る
-4. テーマエディタでそのページを開き、**「Template」グループ**（ページ固有のセクション群）の「Add section」→「アプリ」タブから Forms のブロックを追加する。**「ヘッダー」グループに追加するとサイト全体に表示されてしまうので注意**（`docs/research/customer-accounts.md` 参照）
+4. 作成された Page の「URLハンドル」を `signup-<12文字のランダム英数字>`（生成コマンド: `openssl rand -hex 6`）に変更する。保存時に出る「旧ハンドル→新ハンドルへのURLリダイレクトを作成」のチェックは外す（推測困難なURLにする目的。詳細は `docs/research/signup-url-handle.md` 参照）
+5. 同じ Page に `seo`/`hidden` メタフィールド（`value: "1"`, `type: "number_integer"`）を設定する。sitemapから除外され `noindex`/`nofollow` が付く（Admin GraphQL の `pageUpdate` mutationで設定。手順は `docs/research/signup-url-handle.md` 参照）
+6. テーマエディタでそのページを開き、**「Template」グループ**（ページ固有のセクション群）の「Add section」→「アプリ」タブから Forms のブロックを追加する。**「ヘッダー」グループに追加するとサイト全体に表示されてしまうので注意**（`docs/research/customer-accounts.md` 参照）
 
 ## 注文メタフィールド（参考、Issue #8で実装）
 

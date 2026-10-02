@@ -9,6 +9,11 @@
             "isMember": false
           }
         }
+      },
+      "localization": {
+        "language": {
+          "isoCode": "JA"
+        }
       }
     },
     "output": {
