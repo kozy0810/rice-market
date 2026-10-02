@@ -40,6 +40,7 @@ read_translations, write_translations
 | [metaobjects.md](./research/metaobjects.md) | 派遣元マスタの設計、管理画面からの追加、ハンドル自動生成問題 |
 | [checkout.md](./research/checkout.md) | 決済手段・重量別送料・多言語のチェックアウト実機確認 |
 | [royalty-snapshot.md](./research/royalty-snapshot.md) | 注文時点の派遣元スナップショットとロイヤリティ集計 |
+| [app-home-ui-extension.md](./research/app-home-ui-extension.md) | App Home UI Extensionによる、バックエンド不要なロイヤリティ画面の実現可否（ドキュメント確認のみ、未実証） |
 | [git-management.md](./research/git-management.md) | Shopifyのコード・設定のGit管理可否、テーマ+アプリ構成の制約 |
 
 ## 可否判定のまとめ
