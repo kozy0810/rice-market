@@ -42,7 +42,7 @@ read_translations, write_translations
 | [royalty-snapshot.md](./research/royalty-snapshot.md) | 注文時点の派遣元スナップショットとロイヤリティ集計 |
 | [git-management.md](./research/git-management.md) | Shopifyのコード・設定のGit管理可否、テーマ+アプリ構成の制約 |
 | [signup-url-handle.md](./research/signup-url-handle.md) | 会員登録ページのURLハンドル推測困難化、handleへのスラッシュ不可、sitemap自動掲載とseo.hiddenメタフィールドによる除外 |
-| [self-service-status-change.md](./research/self-service-status-change.md) | 顧客自身によるタグ変更が技術的に不可能なこと、顧客によるメタフィールド書き込みは公式サポートされていること、メタフィールド→Flow→タグ変更という推奨アーキテクチャ |
+| [self-service-status-change.md](./research/self-service-status-change.md) | 顧客自身によるタグ変更は技術的に不可能なこと、顧客によるメタフィールド書き込みは公式サポートされていること、卒業・転籍は所属先(org_code)の自己申告であり購入可否には影響しないこと |
 
 ## 可否判定のまとめ
 

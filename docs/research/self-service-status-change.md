@@ -38,26 +38,37 @@ Customer Account API は2024-07以降、顧客自身によるメタフィール�
 
 **この点は未実証のまま。本番ストア（または手動でのDevストア操作）でのFlowエディタ確認が必要。**
 
-## 結論: 推奨アーキテクチャ
+## 却下: メタフィールド→Flow→タグ変更
+
+当初はこのアーキテクチャを推奨していたが、**Shopify純正のFlowにはメタフィールド更新を検知するトリガーが存在しない**ことが判明したため却下した。
+
+- Devストアの管理画面でFlowのトリガー一覧を確認したところ（ユーザーによる手動確認）、`Customer tags added` / `Customer tags removed`（逆方向＝タグ変更を検知するもの）はあったが、メタフィールド更新を検知するトリガーはShopify純正には存在しなかった
+- 見つかった `Customer metafield value changed` はサードパーティアプリ「Accentuate Custom Fields」が提供するものだった。無料プランもあるが商用ストアでの恒久利用が対象かは不明瞭で、新たなアプリ依存が発生する
+- Shopify Developer Community で Shopify公式スタッフ（paul_n氏）が「メタフィールド更新トリガーは開発中だが、基盤のAPIが不安定でFlow向けにまだ提供できていない」と回答している（2026-10-02時点）。ロードマップ上の機能であり、現時点では存在しない
+
+出典:
+- https://community.shopify.dev/t/feature-request-metafield-value-changed-trigger-in-shopify-flow/36334
+- https://help.accentuate.io/flow-integration/using-metafield-value-change-as-a-shopify-flow-tigger
+
+## 結論: 卒業・転籍は「所属先（org_code）の自己申告」であり、購入可否には影響しない
+
+ここで重要な認識の訂正があった。「卒業」は`member`タグ（購入可否）を外す操作ではない。**卒業しても購入は可能、という運用方針**（[dispatch-org-tagging.md](../specs/dispatch-org-tagging.md)の既存記述「卒業による購入可否の切替は可。購入可のまま残す運用も可能」と同じ）。卒業・転籍はどちらも「所属派遣元（`org:<org_code>`相当）の変更」という同じ操作軸の特殊ケースで、卒業は所属先を空にすること、転籍は別のorg_codeに変更すること。
+
+これにより、**購入ゲート（Cart Validation Function）は一切変更不要**になった。`member`タグのみで判定する既存ロジックをそのまま維持する。
 
 ```
 顧客（Customer Account UI Extension）
-  → 自分で書き込めるメタフィールド（例: customer.graduation_requested）に値を書く
-  → Shopify Flow（メタフィールド更新をトリガーに想定）
-  → Admin API の tagsAdd / tagsRemove でタグを変更
-  → 購入ゲート（Cart Validation Function）は既存のタグ判定ロジックのまま反映される
+  → 自分で書き込めるメタフィールド（self_org_code）に所属先を書く（空＝卒業）
+  → 注文作成時のスナップショット処理（Issue #8）がこのメタフィールドを優先的に参照する
 ```
-
-この方式を推奨する理由:
-- 購入ゲートのロジック（タグ判定）を一切変更せずに済み、既存のロイヤリティ集計（タグ検索前提、[royalty-snapshot.md](./royalty-snapshot.md)）とも衝突しない
-- サーバーを自前で持つ必要がない（Flowのビルトイントリガーが使える前提なら構成Bの方針と整合する）
 
 却下した代替案:
 - アプリが自前のFlow Triggerを作る／Admin APIを直接叩くサーバーを持つ → 「サーバー不要」方針と衝突するため却下
-- 購入ゲート側の判定をタグからメタフィールド直接参照に変更する → タグとメタフィールドの二重管理になり、ロイヤリティ集計の設計（タグ前提）との整合性が崩れるため却下
+- タグを完全に廃止しメタフィールドに全面移行する → 既存のForms自動タグ付与・ロイヤリティ集計の実装を全て作り直すことになり影響範囲が大きすぎるため却下
+- 購入ゲートに`self_active`相当のメタフィールド判定を追加する → 「卒業しても購入可能」という運用方針と矛盾するため不要と判明し却下
+
+具体的なメタフィールド設計の実装詳細は [self-service-status-change.md（仕様）](../specs/self-service-status-change.md) を参照。
 
 ## 残課題
 
-- Flowの標準ビルトイントリガーに「顧客のメタフィールド更新」が存在するかの確認（未実証。本番プラン契約後、またはDevストアでの手動確認が必要）
-- 顧客が書き込めるメタフィールドの namespace・key 設計、値の取りうる形（例: 卒業希望フラグか、転籍先org_codeの申請か）
-- Flowが使えない場合のフォールバック方式の検討（確定後に必要なら追記する）
+- 顧客が転籍先を自由に選べることの業務上の妥当性（裏付けのない自己申告でよいか）はIssue #2の事業判断事項に近い論点。今回は完了条件に明記された通り実装するが、運用開始後に見直しの余地がある
