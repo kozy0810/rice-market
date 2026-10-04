@@ -1,0 +1,14 @@
+[
+  {
+    "name": "#2001",
+    "currentSubtotalPriceSet": {
+      "shopMoney": {"amount": "133.33", "currencyCode": "JPY"}
+    }
+  },
+  {
+    "name": "#2002",
+    "currentSubtotalPriceSet": {
+      "shopMoney": {"amount": "66.67", "currencyCode": "JPY"}
+    }
+  }
+]

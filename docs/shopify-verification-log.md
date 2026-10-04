@@ -15,13 +15,16 @@
 | ストアフロントパスワード | `rteild` |
 | 組織（Dev Dashboard） | `kozy` / `231816619` |
 | 組織（Partner） | `5130284` |
-| Shopify CLI | 4.8.0 |
+| Shopify CLI | 4.8.3 |
 
-CLI は `shopify store auth` で以下のスコープを付与済み。
+CLI は `shopify store auth` で以下のスコープを付与済み（2026-10-02、Issue #44スパイクで`write_orders`以降を追加）。
 
 ```
 read_products, write_products, read_customers, write_customers,
-read_orders, read_themes, read_shipping, read_discounts,
+read_orders, write_orders, read_draft_orders, write_draft_orders,
+read_merchant_managed_fulfillment_orders, write_merchant_managed_fulfillment_orders,
+read_assigned_fulfillment_orders, write_assigned_fulfillment_orders,
+read_themes, read_shipping, read_discounts,
 read_translations, write_translations
 ```
 
@@ -40,7 +43,7 @@ read_translations, write_translations
 | [metaobjects.md](./research/metaobjects.md) | 派遣元マスタの設計、管理画面からの追加、ハンドル自動生成問題 |
 | [checkout.md](./research/checkout.md) | 決済手段・重量別送料・多言語のチェックアウト実機確認 |
 | [royalty-snapshot.md](./research/royalty-snapshot.md) | 注文時点の派遣元スナップショットとロイヤリティ集計 |
-| [app-home-ui-extension.md](./research/app-home-ui-extension.md) | App Home UI Extensionによる、バックエンド不要なロイヤリティ画面の実現可否（ドキュメント確認のみ、未実証） |
+| [app-home-ui-extension.md](./research/app-home-ui-extension.md) | App Home UI Extensionによる、バックエンド不要なロイヤリティ画面の実現可否（Devストアで`shopify.query()`による注文取得・org:タグ絞り込みを実証済み） |
 | [git-management.md](./research/git-management.md) | Shopifyのコード・設定のGit管理可否、テーマ+アプリ構成の制約 |
 | [signup-url-handle.md](./research/signup-url-handle.md) | 会員登録ページのURLハンドル推測困難化、handleへのスラッシュ不可、sitemap自動掲載とseo.hiddenメタフィールドによる除外 |
 
