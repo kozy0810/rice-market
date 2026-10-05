@@ -56,3 +56,12 @@ gh project item-add 5 --owner kozy0810 --url https://github.com/kozy0810/rice-ma
 ## ブランチとマージ
 
 リポジトリへの変更は必ずブランチを切ってから行う（`main` に直接コミットしない）。PRは**必ず squash and merge** を使う（`gh pr merge --squash`）。マージ後はローカル・リモート双方のブランチを削除して `main` を同期する。
+
+## PRとIssueの紐付け
+
+**PRは必ず関連するIssueに紐付ける。** 紐付けないPRは禁止。PR本文に参照を書く。
+
+- そのPRでIssueの完了条件をすべて満たす場合: `Closes #<番号>`（マージ時に自動クローズされる）
+- 調査・部分対応などIssueを完了させない場合: `Related to #<番号>`（クローズはされないがリンクされる）
+
+関連するIssueが存在しない変更（突発的なドキュメント修正など）を行う場合は、先にIssueを立ててから紐付ける。
