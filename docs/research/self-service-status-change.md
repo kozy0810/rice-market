@@ -4,6 +4,8 @@
 
 Issue #45「卒業・転籍ステータスをユーザー自身が変更できるようにする」の実現方式を調査する。購入ゲート（[cart-validation-function.md](./cart-validation-function.md)）は顧客タグ（`member`, `org:<org_code>`）を見て判定しており（[dispatch-org-tagging.md](../specs/dispatch-org-tagging.md)）、管理者がAdmin側でタグを付け替える経路はIssue #7で実装済み。今回は「顧客自身がログイン後の画面から、自分でこのタグ相当のステータスを変更できるか」を調べる。
 
+**前提の確認（2026-10-04）: 「転籍」という概念は存在しない。** 会員登録時に組織（派遣元ごとの専用サインアップURL経由）が割り当てられ、顧客が自分でできる操作は「卒業」（所属組織からの削除、アカウントは存続）のみ。顧客が後から別の組織を自分で選ぶ手段はない。以下の調査・結論は当初「転籍先を自己申告で変更できる」という前提で進めた部分を含むが、最終的な設計は「卒業のみ」に基づく（[self-service-status-change.md（仕様）](../specs/self-service-status-change.md)参照）。
+
 ## 確定: 顧客自身は顧客タグを直接変更できない
 
 顧客が使う **Customer Account API** と、マーチャントが使う **Admin GraphQL API** は別のAPIであり、権限が明確に分かれている。
@@ -50,25 +52,25 @@ Customer Account API は2024-07以降、顧客自身によるメタフィール�
 - https://community.shopify.dev/t/feature-request-metafield-value-changed-trigger-in-shopify-flow/36334
 - https://help.accentuate.io/flow-integration/using-metafield-value-change-as-a-shopify-flow-tigger
 
-## 結論: 卒業・転籍は「所属先（org_code）の自己申告」であり、購入可否には影響しない
+## 結論: 卒業は「所属組織からの削除の自己申告」であり、購入可否には影響しない
 
-ここで重要な認識の訂正があった。「卒業」は`member`タグ（購入可否）を外す操作ではない。**卒業しても購入は可能、という運用方針**（[dispatch-org-tagging.md](../specs/dispatch-org-tagging.md)の既存記述「卒業による購入可否の切替は可。購入可のまま残す運用も可能」と同じ）。卒業・転籍はどちらも「所属派遣元（`org:<org_code>`相当）の変更」という同じ操作軸の特殊ケースで、卒業は所属先を空にすること、転籍は別のorg_codeに変更すること。
+ここで重要な認識の訂正が2つあった。
 
-これにより、**購入ゲート（Cart Validation Function）は一切変更不要**になった。`member`タグのみで判定する既存ロジックをそのまま維持する。
+1. 「卒業」は`member`タグ（購入可否）を外す操作ではない。**卒業しても購入は可能、という運用方針**（[dispatch-org-tagging.md](../specs/dispatch-org-tagging.md)の既存記述「卒業による購入可否の切替は可。購入可のまま残す運用も可能」と同じ）
+2. 「転籍」という概念は存在しない。顧客が自分でできる操作は「卒業」のみで、所属組織は会員登録時（専用サインアップURL経由）にのみ割り当てられる
+
+これにより、**購入ゲート（Cart Validation Function）は一切変更不要**になり、UIも「派遣元を選ぶ」のではなく「卒業するボタン」1つのシンプルな実装で済む。
 
 ```
 顧客（Customer Account UI Extension）
-  → 自分で書き込めるメタフィールド（self_org_code）に所属先を書く（空＝卒業）
-  → 注文作成時のスナップショット処理（Issue #8）がこのメタフィールドを優先的に参照する
+  → 「卒業する」操作で self_graduated メタフィールドを true にする
+  → 注文作成時のスナップショット処理（Issue #8）が true なら所属組織なしとして扱う
 ```
 
 却下した代替案:
 - アプリが自前のFlow Triggerを作る／Admin APIを直接叩くサーバーを持つ → 「サーバー不要」方針と衝突するため却下
 - タグを完全に廃止しメタフィールドに全面移行する → 既存のForms自動タグ付与・ロイヤリティ集計の実装を全て作り直すことになり影響範囲が大きすぎるため却下
 - 購入ゲートに`self_active`相当のメタフィールド判定を追加する → 「卒業しても購入可能」という運用方針と矛盾するため不要と判明し却下
+- 顧客が転籍先（派遣元一覧）を自由に選べるUI → 「転籍」という概念自体が存在しないため不要と判明し却下
 
 具体的なメタフィールド設計の実装詳細は [self-service-status-change.md（仕様）](../specs/self-service-status-change.md) を参照。
-
-## 残課題
-
-- 顧客が転籍先を自由に選べることの業務上の妥当性（裏付けのない自己申告でよいか）はIssue #2の事業判断事項に近い論点。今回は完了条件に明記された通り実装するが、運用開始後に見直しの余地がある

@@ -1,43 +1,41 @@
-# 顧客自身による卒業・転籍ステータス変更の仕様
+# 顧客自身による卒業ステータス変更の仕様
 
 Issue #45 の実装仕様。実現方式の調査経緯は [docs/research/self-service-status-change.md](../research/self-service-status-change.md)、タグの命名規則は [dispatch-org-tagging.md](./dispatch-org-tagging.md) を参照。
 
 ## 背景
 
-Customer Account API（顧客自身が使うAPI）には顧客タグを直接変更する手段が存在しない。顧客自身によるメタフィールド書き込みは公式にサポートされているため、顧客メタフィールドを「所属先の最新の自己申告値」として扱う方式を採る。Flowのような仲介は使わない（調査の結果、Shopify純正のFlowにはメタフィールド更新を検知するトリガーが存在しないため）。
+**「転籍」という概念は存在しない。** 会員登録時に組織（派遣元ごとの専用サインアップURL、[dispatch-org-tagging.md](./dispatch-org-tagging.md)参照）経由で組織が割り当てられ、顧客自身が自分でできる操作は「卒業」のみ。卒業は所属組織からの削除を意味し、**顧客アカウント自体は残り続ける**（退会ではない）。卒業しても購入は可能（`member`タグには影響しない運用方針）。
 
-**卒業・転籍は、どちらも「所属派遣元（`org:<org_code>`相当）の変更」という同じ操作軸の特殊ケース。** 卒業は所属先を空にすること、転籍は別の派遣元コードに変更すること。どちらも**購入可否（`member`タグ）には影響しない**（卒業しても購入は可能、という運用方針。[dispatch-org-tagging.md](./dispatch-org-tagging.md)の既存記述「卒業による購入可否の切替は可。購入可のまま残す運用も可能」と整合する）。
+Customer Account API（顧客自身が使うAPI）には顧客タグを直接変更する手段が存在しない。顧客自身によるメタフィールド書き込みは公式にサポートされているため、「卒業したかどうか」を顧客メタフィールドで表現する。
 
 ## 顧客メタフィールド
 
 | キー | 型 | 用途 |
 |---|---|---|
-| `custom.self_org_code` | 単一行テキスト（空文字列可） | 顧客自身による所属先の自己申告。転籍は新しい`org_code`に変更、卒業は空文字列にする。値があれば（空でなければ）タグの`org:<org_code>`より優先される |
+| `custom.self_graduated` | 真偽値 | 顧客自身による卒業操作。`true`なら卒業済み（所属組織なし）。未設定は`false`相当として扱う |
 
 Customer Account API から顧客自身が読み書きできるよう、Admin側のメタフィールド定義で `MetafieldCustomerAccountAccess` を `READ_WRITE` に設定する（`docs/research/self-service-status-change.md`参照）。
 
 ## 購入ゲート（Cart Validation Function）への影響
 
-**変更不要。** `apps/shopify-app/extensions/org-tag-gate/src/cart_validations_generate_run.ts` は `member` タグのみで判定する既存ロジック（[cart-validation-function.md](../research/cart-validation-function.md)）のまま維持する。卒業・転籍操作は所属先情報のみを変更し、購入可否には影響しない。
+**変更不要。** `apps/shopify-app/extensions/org-tag-gate/src/cart_validations_generate_run.ts` は `member` タグのみで判定する既存ロジック（[cart-validation-function.md](../research/cart-validation-function.md)）のまま維持する。卒業操作は所属組織情報のみを変更し、購入可否には影響しない。
 
-## 転籍先の解決ロジック（注文スナップショット、Issue #8）
+## 所属組織の解決ロジック（注文スナップショット、Issue #8）
 
 Issue #8（nice to have、[royalty-snapshot.md](../research/royalty-snapshot.md)参照）で実装予定の、注文作成時点の派遣元スナップショット処理に、次の優先順位を追加する。
 
 ```
-org_code = 顧客メタフィールド self_org_code（空でなければ）、なければタグ org:<org_code>
+self_graduated が true なら → org_codeなし（どの派遣元のロイヤリティ集計対象にもならない）
+false / 未設定なら          → タグ org:<org_code> をそのまま使う
 ```
-
-卒業済み（`self_org_code`が空文字列）の顧客が注文した場合、org_codeなし（≒どの派遣元のロイヤリティ集計対象にもならない）として扱う。
 
 ## Customer Account UI Extension（新規実装）
 
-Profileページ等に「所属先を変更する」操作を1つ配置する。卒業・転籍は同じ操作のバリエーションとして扱う（所属先選択肢に「所属なし（卒業）」を含める）。
+Profileページ等に「卒業する」操作を1つ配置する。派遣元を選ぶUIは不要（組織の割り当ては会員登録時のみで、顧客が後から別の組織を選ぶ手段はない）。
 
-- `dispatch_org` メタオブジェクト（[dispatch-org-tagging.md](./dispatch-org-tagging.md)参照）から `active: true` の派遣元一覧を取得し、選択肢として表示する（「所属なし」を含む）
-- 選択内容を確認する画面を挟んでから `self_org_code` に書き込む（確認ステップあり。即時反映はしない）
-- 書き込み後、何度でも再変更できる（卒業から復帰、転籍し直し、いずれも同じ操作で可能。取り消し専用の仕組みは設けない）
+- 「卒業する」ボタン → 確認画面を挟んでから `self_graduated` を `true` に書き込む
+- 卒業後に取り消す操作は顧客自身には提供しない（管理者がAdmin API経由でタグを操作する既存経路（Issue #7）で対応する）
 
 ## 未確定事項
 
-- 顧客が裏付けなく自由に所属先を選べることの業務上の妥当性（`docs/research/self-service-status-change.md`の残課題を参照。Issue #2の事業判断事項に近い論点）
+- なし（「転籍先を自由に選べることの妥当性」は転籍という概念自体が存在しないため解消した）
