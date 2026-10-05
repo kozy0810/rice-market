@@ -1,0 +1,11 @@
+{
+  "heading": "所屬機構",
+  "graduatedStatus": "您已畢業。您的帳戶仍可正常使用，可以繼續購買。",
+  "activeStatus": "您目前屬於某個派遣機構。",
+  "graduateButton": "畢業",
+  "modalHeading": "確定要從所屬機構畢業嗎？",
+  "modalDescription": "此操作將解除您與所屬機構的關聯。您的帳戶和購買記錄將保持不變，您仍可繼續下單購買。",
+  "confirmButton": "畢業",
+  "cancelButton": "取消",
+  "errorMessage": "發生錯誤，請重試。"
+}

@@ -1,0 +1,11 @@
+{
+  "heading": "Tổ chức phái cử",
+  "graduatedStatus": "Bạn đã tốt nghiệp. Tài khoản của bạn vẫn hoạt động bình thường và bạn vẫn có thể mua hàng.",
+  "activeStatus": "Hiện tại bạn đang thuộc một tổ chức phái cử.",
+  "graduateButton": "Tốt nghiệp",
+  "modalHeading": "Tốt nghiệp khỏi tổ chức phái cử?",
+  "modalDescription": "Thao tác này sẽ xóa tư cách thành viên tổ chức phái cử của bạn. Tài khoản và lịch sử mua hàng của bạn vẫn giữ nguyên, và bạn vẫn có thể đặt hàng.",
+  "confirmButton": "Tốt nghiệp",
+  "cancelButton": "Hủy",
+  "errorMessage": "Đã xảy ra lỗi. Vui lòng thử lại."
+}

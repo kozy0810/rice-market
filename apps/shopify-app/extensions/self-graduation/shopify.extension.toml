@@ -1,0 +1,20 @@
+# Learn more about configuring your Customer account UI extension:
+# https://shopify.dev/docs/api/customer-account-ui-extensions/latest#configuration
+
+# The version of APIs your extension will receive. Learn more:
+# https://shopify.dev/docs/api/usage/versioning
+api_version = "2026-07"
+
+[[extensions]]
+name = "self-graduation"
+handle = "self-graduation"
+type = "ui_extension"
+uid = "8e4177c2-d08d-566a-5eee-f9bf9212811bdafa97ed"
+
+# Controls where in Shopify your extension will be injected,
+# and the file that contains your extension’s source code. Learn more:
+# https://shopify.dev/docs/api/customer-account-ui-extensions/latest/targets
+
+[[extensions.targeting]]
+module = "./src/ProfileBlock.jsx"
+target = "customer-account.profile.block.render"

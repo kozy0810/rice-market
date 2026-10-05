@@ -1,0 +1,11 @@
+{
+  "heading": "派遣元",
+  "graduatedStatus": "卒業済みです。アカウントはそのまま使えます。引き続き購入できます。",
+  "activeStatus": "現在、派遣元に所属しています。",
+  "graduateButton": "卒業する",
+  "modalHeading": "派遣元から卒業しますか？",
+  "modalDescription": "派遣元への所属が解除されます。アカウントや購入履歴はそのまま残り、引き続き購入できます。",
+  "confirmButton": "卒業する",
+  "cancelButton": "キャンセル",
+  "errorMessage": "エラーが発生しました。もう一度お試しください。"
+}

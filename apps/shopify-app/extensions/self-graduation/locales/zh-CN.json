@@ -1,0 +1,11 @@
+{
+  "heading": "所属机构",
+  "graduatedStatus": "您已毕业。您的账户仍可正常使用，可以继续购买。",
+  "activeStatus": "您目前属于某个派遣机构。",
+  "graduateButton": "毕业",
+  "modalHeading": "确定要从所属机构毕业吗？",
+  "modalDescription": "此操作将解除您与所属机构的关联。您的账户和购买记录将保持不变，您仍可继续下单购买。",
+  "confirmButton": "毕业",
+  "cancelButton": "取消",
+  "errorMessage": "发生错误，请重试。"
+}
