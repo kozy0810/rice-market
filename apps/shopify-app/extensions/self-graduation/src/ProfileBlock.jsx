@@ -5,6 +5,7 @@ import {useState, useEffect} from 'preact/hooks';
 const API_VERSION = '2026-07';
 const METAFIELD_NAMESPACE = '$app';
 const METAFIELD_KEY = 'self_graduated';
+const ORG_NAME_METAFIELD_KEY = 'org_name';
 
 export default async () => {
   render(<Extension />, document.body);
@@ -26,6 +27,7 @@ function Extension() {
   const translate = shopify.i18n.translate;
   const [customerId, setCustomerId] = useState(null);
   const [orgCode, setOrgCode] = useState(null);
+  const [orgName, setOrgName] = useState(null);
   const [graduated, setGraduated] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
@@ -39,6 +41,9 @@ function Extension() {
           metafield(namespace: "${METAFIELD_NAMESPACE}", key: "${METAFIELD_KEY}") {
             value
           }
+          orgNameMetafield: metafield(namespace: "${METAFIELD_NAMESPACE}", key: "${ORG_NAME_METAFIELD_KEY}") {
+            value
+          }
         }
       }
     `).then(({data}) => {
@@ -47,6 +52,7 @@ function Extension() {
       setGraduated(data.customer.metafield?.value === 'true');
       const orgTag = data.customer.tags.find((tag) => tag.startsWith('org:'));
       setOrgCode(orgTag ? orgTag.slice('org:'.length) : null);
+      setOrgName(data.customer.orgNameMetafield?.value || null);
     });
   }, []);
 
@@ -98,7 +104,9 @@ function Extension() {
             <s-badge tone={graduated ? 'neutral' : 'success'}>
               {graduated ? translate('graduatedBadge') : translate('activeBadge')}
             </s-badge>
-            {!graduated && orgCode && <s-text type="strong">{orgCode}</s-text>}
+            {!graduated && (orgName || orgCode) && (
+              <s-text type="strong">{orgName || orgCode}</s-text>
+            )}
           </s-stack>
 
           {!graduated && (

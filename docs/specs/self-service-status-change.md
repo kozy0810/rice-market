@@ -63,9 +63,9 @@ false / 未設定なら          → タグ org:<org_code> をそのまま使う
 ### UI改善（`ProfileBlock.jsx`）
 
 - 現在の所属状態をバッジで表示（所属中 / 卒業済み）
-- 未卒業時は `customer.tags` から `org:<org_code>` を抽出し、組織コードを表示
+- 未卒業時は `customer.metafield($app:org_name)` を読み、組織名（例:「さくら協同組合」）を表示する。Flowによる同期がまだ走っていない顧客向けに、`org_name`が未設定なら`customer.tags`から抽出した`org_code`にフォールバックする
 - 「現在、派遣元に所属している」という説明文は削除し、卒業済み時のみ `graduatedStatus` メッセージを表示
-- バッジ・組織コードを左、卒業ボタンを右に配置（`direction="inline" justifyContent="space-between"`）
+- バッジ・組織名を左、卒業ボタンを右に配置（`direction="inline" justifyContent="space-between"`）
 
 ### 顧客メタフィールド `org_name`（組織名の自動同期）
 
@@ -93,3 +93,5 @@ access.admin = "merchant_read_write"
 3. アクション: `Update customer metafield`（Liquidで顧客タグから `org_code` を抽出し、一致するメタオブジェクトエントリーの `org_name` を `org_name` メタフィールドに書き込む）
 
 Devストアでテスト実行し、テスト顧客（タグ `member`, `org:sakura`）に対して `org_name` が正しく「さくら協同組合」に更新されることを確認。本番運用でワークフローをオンにした。
+
+**注意: ワークフローをオンにしても、既存の顧客タグには遡及適用されない。** `Customer tags added`はオンになった後の新規イベントにのみ反応するトリガーのため、オン化前からタグを持っていた顧客は`org_name`が同期されないまま残る（`null`）。実機検証でこれに気づき、既存顧客のタグを一旦`tagsRemove`で外し`tagsAdd`で付け直すことで実際にトリガーを発火させ、`org_name`が「さくら協同組合」に正しく書き込まれることを確認した。本番移行時は、オン化前に登録済みの顧客に対して同様の再付与（またはタグの一括更新）が必要になる。
