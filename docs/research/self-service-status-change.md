@@ -74,3 +74,35 @@ Customer Account API は2024-07以降、顧客自身によるメタフィール�
 - 顧客が転籍先（派遣元一覧）を自由に選べるUI → 「転籍」という概念自体が存在しないため不要と判明し却下
 
 具体的なメタフィールド設計の実装詳細は [self-service-status-change.md（仕様）](../specs/self-service-status-change.md) を参照。
+
+## 追補（2026-10-06）: 「組織名」の表示には、既存のビルトイントリガーで足りる
+
+Issue #45実装後、「派遣元」という表示をユーザーごとの具体的な組織名（例:「さくら協同組合」）にしたいという追加要望が出た。顧客は `org:<org_code>` タグを持つが、`org_code` は短い識別子でしかなく、人間が読む組織名（`dispatch_org` メタオブジェクトの `org_name` フィールド）とは別物。UI表示用に、`org_code` → `org_name` の変換結果を顧客メタフィールドとして持たせたい。
+
+上の「却下」節では「メタフィールド更新→Flow→タグ変更」という方向（メタフィールドの変更を検知するトリガーがない）を検討して却下したが、**今回は向きが逆**で「タグ追加→Flowでメタフィールド更新」。この向きなら `Customer tags added` というビルトイントリガーが最初から存在し（却下節の調査で既に確認済み）、サーバーも不要なため、構成Bの前提と衝突しない。
+
+### 採用した設計
+
+```
+顧客タグに org:<org_code> が追加される（Forms等、既存の仕組み）
+  → Flowトリガー: Customer tags added
+  → アクション: Get metaobject entries（dispatch_org を全件取得）
+  → アクション: Update customer metafield（Liquidでタグから org_code を抽出し、
+                 一致する dispatch_org エントリの org_name を書き込む）
+```
+
+**メタオブジェクトのフィルタリング機能はTOML宣言的定義では使えない。** 管理画面の「派遣元組織」定義ページで「フィルターとして使用されるフィールド」欄がグレーアウトし編集不可だった。`shopify-dev`スキルで調査した結果、TOML宣言的メタオブジェクト定義がサポートする capability は `Publishable` / `Translatable` / `Renderable` のみで、`adminFilterable` は非対応と判明（[metaobjects.md](./metaobjects.md)の設計に追加の制約）。そのため `Get metaobject entries` はクエリなしで全件取得し、絞り込みは後続の `Update customer metafield` の Value 欄で Liquid を使って行う。
+
+Value欄のLiquid（`tags`・`getMetaobjectEntries` が利用可能な変数として渡される）:
+
+```liquid
+{% assign found = "" %}{% for t in tags %}{% if t contains 'org:' %}{% assign found = t | remove: 'org:' %}{% endif %}{% endfor %}{% for e in getMetaobjectEntries %}{% if e.orgCode == found %}{{ e.orgName }}{% endif %}{% endfor %}
+```
+
+Devストアでテスト実行し、テスト顧客（タグ `member`, `org:sakura`）に対して `org_name` メタフィールドが正しく「さくら協同組合」に評価されることを確認済み。ワークフロー（「顧客タグ追加時に組織名を同期」）は本番運用でオンにした。
+
+### ハマりどころ: Flowのコードエディタでの `{% %}` 入力がブラウザ自動操作で壊れる
+
+Flowの `Update customer metafield` アクションの Value 欄は Liquid用のコードエディタ（CodeMirror系）で、**`{%` や `{{` を入力すると自動的にスニペット補完ポップアップが開く**。ブラウザ自動操作で文字列をまとめて1回の `type` 操作として送ると、途中のスペースキー入力がポップアップの確定操作として誤認識され、`{% assign variable_name = value %}` のようなテンプレート片が無関係に挿入される。結果、末尾に `%}` が大量に重複した壊れたコードになる（評価結果が `さくら協同組合 %} %} %} ...` のようになる）。
+
+対処: `{%` や `{{` を打つたびに `Escape` キーを挟んでポップアップを閉じてから続きを入力する。この方式なら自動クローズされた `%}` / `}}` をそのまま使え、`End` キーで行末（自動補完された閉じ括弧の後）に移動してから次のタグを追記していける。人間が手でタイプする場合はこの問題は起きにくいが、自動入力・コピペ系のツールでこのエディタを操作する際は要注意。

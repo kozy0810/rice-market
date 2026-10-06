@@ -28,6 +28,7 @@ description: rice-marketプロジェクトのShopify（Devストア・カスタ�
 - **メタオブジェクトを管理画面から作成すると、ハンドルが自動生成され読みにくい値になる。** API作成時の任意ハンドルとは異なる。タグ等に使う場合は要注意（`docs/research/metaobjects.md` 参照）
 - **`shopify store execute`（`shopify store auth`のCLIセッション）からは、他アプリ（例: `rice-market-app`）が所有するメタオブジェクトが見えない。** `read_metaobjects`スコープを付与しても`metaobjectDefinitions`/`metaobjects`クエリが空で返る。実機確認は管理画面UI（コンテンツ > メタオブジェクト）で行うこと
 - **`apps/shopify-app/`のようにローカルの`.shopify/`を含めずGit管理すると、`shopify app info`が「Dev store: Not yet configured」になる。** `shopify app dev --store <ストア>`を一度実行すれば紐付く（インストールされていなければ同時にインストールもされる）
+- **Shopify FlowのLiquidコードエディタ（例: 「Update customer metafield」のValue欄）は`{%`や`{{`の入力でスニペット自動補完ポップアップが開く。** ブラウザ自動操作で長いLiquid文字列を一度に`type`すると、途中のスペースキーがポップアップの確定操作として誤認識され、無関係なテンプレート片（`{% assign variable_name = value %}`等）が挿入されて壊れる。対処: `{%`/`{{`を打つたびに`Escape`でポップアップを閉じてから続きを入力し、`End`キーで自動補完された閉じ括弧の後ろへ移動してから次のタグを追記する（詳細は`docs/research/self-service-status-change.md`の追補参照）
 
 ## 記録のフォーマット
 

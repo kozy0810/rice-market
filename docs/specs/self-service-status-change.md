@@ -55,3 +55,41 @@ false / 未設定なら          → タグ org:<org_code> をそのまま使う
 ## 未確定事項
 
 - Protected Customer Dataへのアクセス承認が、本番ストアへの移管時に別途必要になるか（Devストアでは申請なしで動作したが、公式ドキュメントに記載がある手続きのため要確認）
+
+## 追加実装（2026-10-06）: 具体的な組織名の表示とFlowによる自動同期
+
+「派遣元」という表示をユーザーごとの具体的な組織名（例:「さくら協同組合」）にしたいという要望を受け、UIとデータ同期の両方を実装した。調査経緯は [self-service-status-change.md（research）の追補](../research/self-service-status-change.md#追補2026-10-06-組織名の表示には既存のビルトイントリガーで足りる)を参照。
+
+### UI改善（`ProfileBlock.jsx`）
+
+- 現在の所属状態をバッジで表示（所属中 / 卒業済み）
+- 未卒業時は `customer.tags` から `org:<org_code>` を抽出し、組織コードを表示
+- 「現在、派遣元に所属している」という説明文は削除し、卒業済み時のみ `graduatedStatus` メッセージを表示
+- バッジ・組織コードを左、卒業ボタンを右に配置（`direction="inline" justifyContent="space-between"`）
+
+### 顧客メタフィールド `org_name`（組織名の自動同期）
+
+| キー | 型 | 用途 |
+|---|---|---|
+| `$app:org_name`（実体は`app--<app id>:org_name`） | 単一行テキスト | `dispatch_org` メタオブジェクトの `org_name` をShopify Flowが同期する。顧客自身は読み取りのみ |
+
+`shopify.app.toml` に以下を追加（`access.customer_account` は `read_only` ではなく `read` を指定する。TOMLスキーマが受け付ける列挙値は `none` / `read` / `read_write` のみで `read_only` は存在しない）。
+
+```toml
+[customer.metafields.app.org_name]
+name = "所属派遣元の組織名"
+description = "dispatch_org メタオブジェクトの org_name を Shopify Flow が同期する（顧客タグ org:<org_code> が追加されたとき）。顧客自身は読み取りのみ（Issue #45）"
+type = "single_line_text_field"
+access.customer_account = "read"
+access.admin = "merchant_read_write"
+```
+
+### Shopify Flowワークフロー「顧客タグ追加時に組織名を同期」
+
+管理画面上で構築（コードではなくFlow GUIで管理するため、リポジトリにファイルは存在しない）。構成・ハマりどころの詳細は [research側の追補](../research/self-service-status-change.md#追補2026-10-06-組織名の表示には既存のビルトイントリガーで足りる)を参照。
+
+1. トリガー: `Customer tags added`
+2. アクション: `Get metaobject entries`（`dispatch_org` を全件取得、クエリなし）
+3. アクション: `Update customer metafield`（Liquidで顧客タグから `org_code` を抽出し、一致するメタオブジェクトエントリーの `org_name` を `org_name` メタフィールドに書き込む）
+
+Devストアでテスト実行し、テスト顧客（タグ `member`, `org:sakura`）に対して `org_name` が正しく「さくら協同組合」に更新されることを確認。本番運用でワークフローをオンにした。
