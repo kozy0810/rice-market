@@ -17,7 +17,7 @@ embedded_app_direct_api_access = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,read_customers,write_customers,read_metaobjects,write_metaobjects"
+scopes = "write_products,read_customers,write_customers,read_metaobjects,write_metaobjects,customer_read_customers,customer_write_customers"
 
 [auth]
 redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
@@ -43,6 +43,20 @@ required = true
 [metaobjects.app.dispatch_org.fields.active]
 name = "有効"
 type = "boolean"
+
+[customer.metafields.app.self_graduated]
+name = "自己申告の卒業フラグ"
+description = "顧客自身が卒業操作をしたら true になる。所属派遣元からの削除を意味する（Issue #45）"
+type = "boolean"
+access.customer_account = "read_write"
+access.admin = "merchant_read_write"
+
+[customer.metafields.app.org_name]
+name = "所属派遣元の組織名"
+description = "dispatch_org メタオブジェクトの org_name を Shopify Flow が同期する（顧客タグ org:<org_code> が追加されたとき）。顧客自身は読み取りのみ（Issue #45）"
+type = "single_line_text_field"
+access.customer_account = "read"
+access.admin = "merchant_read_write"
 
 [sidekick]
 extensions_summary = "購入ゲート（Cart Validation Function）と派遣元マスタ（メタオブジェクト）を持つ"
