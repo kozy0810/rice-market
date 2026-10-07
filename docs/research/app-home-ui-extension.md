@@ -462,6 +462,100 @@ Opened link to start the auth process: https://accounts.shopify.com/activate-wit
 - ブラウザ操作が可能な環境（または人間）で`.claude/worktrees/rippling-scribbling-honey/apps/shopify-app`から`npx shopify app deploy --allow-updates`を再実行し、表示されるデバイスコードのリンクを開いて認証を完了させる
 - デプロイ完了後、本ファイル3節の5項目をあらためて実機確認する
 
+## CSVエクスポート機能の実機確認（2026-10-08、`feat/royalty-csv-export`）
+
+Issue #44の集計結果にCSVダウンロード機能（`HomePage.jsx`の`handleExportCsv`、`aggregate.js`の`rowsToCsv`）を追加した実装について、`.claude/worktrees/snug-strolling-wind`から`shopify app deploy`での反映を試みた。**デプロイは成功したが、ブラウザでのボタン操作・ダウンロード確認は、このセッションにブラウザ操作手段が与えられていなかったため未検証のまま終わった。**
+
+### 1. デプロイ時に遭遇した2つの環境起因の問題（CSV機能自体の不具合ではない）
+
+**問題A: このworktreeに`node_modules`が一つも存在しなかった。** `pnpm install`を一度も実行していない状態だったため、最初の`shopify app deploy --allow-updates`は以下のエラーで失敗した。
+
+```
+Type reference for customer-account.profile.block.render could not be
+found. You might be using the wrong @shopify/ui-extensions version.
+```
+
+これは`royalty-dashboard`とは無関係な`self-graduation`拡張機能（customer-account UI extension）の型解決エラーで、`node_modules`が存在しないことによる誤解を招くエラーメッセージだった。`pnpm install`を実行して解消した。
+
+**問題B（重要・リポジトリの実バグ）: `extensions/royalty-dashboard/assets/`ディレクトリがgitに一切追跡されていなかった。** `pnpm install`後の再実行で、以下のエラーが出た。
+
+```
+Build step "Include UI Extension Assets" failed: Couldn't find
+extensions/royalty-dashboard/assets
+Please check the path './assets' in your configuration
+```
+
+`shopify.extension.toml`の`assets = "./assets"`は初回実装コミット（`8bbd525c`）から存在するが、`git ls-files`で確認したところ`extensions/royalty-dashboard/assets`配下のファイルは一つも追跡されていない。Gitは空ディレクトリを追跡しないため、過去のセッション（2026-10-02〜2026-10-07）でこのディレクトリが存在したのはローカルの作業ディレクトリに残っていた副産物であり、**fresh cloneやfresh worktreeではこのディレクトリ自体が存在せず、`shopify app deploy`が同じエラーで必ず失敗する。** メインの作業ディレクトリ（`apps/shopify-app`、worktreeではない方）でも確認したところ、同様に`assets`ディレクトリが存在しなかった。
+
+`mkdir -p extensions/royalty-dashboard/assets && touch extensions/royalty-dashboard/assets/.gitkeep`で空ディレクトリをgit管理下に置き、再度デプロイしたところ成功した。
+
+```
+royalty-dashboard │ Included './assets'
+...
+New version released to users.
+royalty-calculator-15
+```
+
+**この`.gitkeep`追加は今回コミットに含めた。** 今後fresh cloneやfresh worktreeで`shopify app deploy`する際に同じ罠に引っかからないようにするための修正。
+
+### 2. デプロイ自体は成功（`royalty-calculator-15`）
+
+直前セッション（2026-10-07）で未解決だったPartner組織ログインは、今回は再要求されず完了した（ユーザー本人のブラウザログインが引き続き有効だった）。`npx shopify app deploy --allow-updates`で`royalty-calculator-15`として正常にリリースされた。
+
+### 3. 間接的な確認: リリースされたバンドルにCSV機能のコードが含まれていること
+
+ブラウザ操作ができないため、ビルド後の`dist/royalty-dashboard.js`（実際にデプロイされたバンドル）をgrepし、CSV機能のコードが削除・バンドル漏れしていないことを確認した。
+
+```
+$ grep -o 'CSV.\{0,30\}' dist/royalty-dashboard.js
+CSVダウンロー   ← 「CSVダウンロード」（unicodeエスケープ）
+
+$ grep -o 'royalty-.\{0,40\}padStart' dist/royalty-dashboard.js
+royalty-${_}-${String(a).padStart   ← ファイル名パターン royalty-<year>-<month>.csv
+
+$ grep -o 'createObjectURL' dist/royalty-dashboard.js
+createObjectURL
+$ grep -o 'revokeObjectURL' dist/royalty-dashboard.js
+revokeObjectURL
+$ grep -o 'FEFF' dist/royalty-dashboard.js
+FEFF   ← BOM（﻿）
+```
+
+**これは「ボタンを押したら実際にファイルがダウンロードされるか」という本来確認すべき事実の代替にはならない。** コードがバンドルに含まれていることだけを示す静的な確認であり、ブラウザのiframe内で`Blob`/`createObjectURL`/`<a>.click()`が実際に動くかどうかは別問題（下記4参照）。
+
+### 4. ユニットテストはこのworktreeでも再現
+
+```
+$ npx vitest run
+ ✓ tests/searchQuery.test.js (9 tests)
+ ✓ tests/fetchOrders.test.js (4 tests)
+ ✓ tests/aggregate.test.js (15 tests)
+ Test Files  3 passed (3)
+      Tests  28 passed (28)
+```
+
+依頼文にあった「28件通過済み」がこのworktreeでも再現することを確認した（`rowsToCsv`のCSVエスケープ・BOM関連のテストを含む）。
+
+### 5. ブラウザでの実機確認は未達（このセッションにブラウザ操作手段がない）
+
+このエージェントのセッションには管理画面を操作するブラウザ/computerツールが与えられておらず、依頼されていた以下はすべて**未検証**のまま。
+
+- 管理画面下部の「開発プレビュー」インジケーターの有無確認・クリーンアップ
+- Royalty Calculator画面を開き、年・月を指定して集計を実行
+- 「CSVダウンロード」ボタンのクリックと、実際にファイルがダウンロードされるか
+- ダウンロードされたファイルの内容（日本語の文字化け、各列の値）
+- ブラウザのコンソールエラーの有無
+
+**「動くはず」という推測は書かない。** 代わりに、次に人間またはブラウザ操作可能なセッションが確認すべき点を以下に残す。
+
+### 6. 次に確認すべきこと（ハンドオフ）
+
+1. **まず管理画面下部の「開発プレビュー」インジケーターを確認する。** 2026-10-07に別worktreeの`shopify app dev`を`pkill`で強制終了させた経緯があり（本ファイル上部「マージ後の再デプロイ・実機確認を試みたが未達」節参照）、`Ctrl+C`でのクリーンな終了ではなかった。`ps aux`では現在`shopify app dev`・`cloudflared`のプロセスは確認できない（今回のセッションで確認済み）が、**管理画面側に開発プレビューの登録が残っているかどうかはCLIからは確認できない。** 残っていればクリーンアップしてから、`royalty-calculator-15`が実際に表示されることを確認する。
+2. Royalty Calculator画面で年・月を指定して集計し、「CSVダウンロード」ボタンを押してファイルが実際に保存されるか確認する。保存されたファイルをテキストエディタ・Excelなどで開き、1行目のBOM起因の文字化けがないか、派遣元名が日本語で正しく表示されるか、列の値が画面表示と一致するかを確認する。
+3. **コードレベルで注目すべき2点**（埋め込みiframe・サンドボックス環境特有の失敗モードになりやすい箇所。確認時にここを疑うとよい）:
+   - `handleExportCsv`は`link.click()`の直後の行で同期的に`URL.revokeObjectURL(url)`を呼んでいる。`click()`によるダウンロード開始が非同期にキューイングされる実装のブラウザでは、同一ティックでの`revokeObjectURL`がダウンロードを打ち切る可能性がある。Shopify公式のcollections拡張サンプルが`revokeObjectURL`を遅延実行（`setTimeout`等）しているかどうかを確認し、していればそれに合わせる。
+   - `link`（`<a>`要素）がDOMに一度も`appendChild`されず、生成されたまま`click()`されている。多くのモダンブラウザはdetached `<a>`でも動作するが、管理画面の埋め込みiframe・サンドボックス属性（`allow-downloads`の有無等）と組み合わさると、ダウンロードが静かに失敗する可能性がある。ブラウザのコンソールに`sandbox`や`allow-downloads`に関する警告が出ていないか確認する。
+
 ## 判定（2026-10-04時点）: 可。本番運用には#8と`read_all_orders`申請が必要、ただし#8の見通しは好転した可能性がある
 
 Issue #44の3つの完了条件は、いずれもDevストアの実データで実機確認できている。`shopify app deploy`後の再同意フローも実機で動作確認済み。本番運用には引き続き#8（注文への派遣元自動タグ付け）の実装と`read_all_orders`スコープの承認申請が必要だが、#8の候補手段であるShopify Flowが以前より進んだ状態（ワークフロー作成画面まで到達可能）にあることが分かり、見通しが好転した可能性がある。このIssueはクローズしていない。
