@@ -43,6 +43,7 @@ read_translations, write_translations
 | [git-management.md](./research/git-management.md) | Shopifyのコード・設定のGit管理可否、テーマ+アプリ構成の制約 |
 | [signup-url-handle.md](./research/signup-url-handle.md) | 会員登録ページのURLハンドル推測困難化、handleへのスラッシュ不可、sitemap自動掲載とseo.hiddenメタフィールドによる除外 |
 | [self-service-status-change.md](./research/self-service-status-change.md) | 顧客自身によるタグ変更は技術的に不可能なこと、顧客によるメタフィールド書き込みは公式サポートされていること、卒業は所属組織からの削除の自己申告であり購入可否には影響しないこと。実装・実機検証済み（Issue #45、仕様は`docs/specs/self-service-status-change.md`）。組織名の自動同期（`Customer tags added`トリガー + Shopify Flow）も追加実装・実機検証済み（2026-10-06） |
+| [unpaid-order-auto-cancel.md](./research/unpaid-order-auto-cancel.md) | 未入金注文の自動キャンセル（日数指定）はShopify管理画面にネイティブ設定が存在しないこと。チェックアウト設定・一般設定（注文処理）・手動決済方法の3箇所を実機確認済み。Flow依存のため#8と同じ制約でDevストアでは検証不可（Issue #46） |
 
 ## 可否判定のまとめ
 
@@ -61,6 +62,7 @@ read_translations, write_translations
 | 重量別・地域別送料 | 可 | 同上 |
 | 重量バリエーション | 可 | 同上 |
 | 産地情報の保持・表示 | 可 | 商品メタフィールド |
+| 未入金注文の自動キャンセル（日数指定可） | 条件付き（Devストアでは不可） | [unpaid-order-auto-cancel.md](./research/unpaid-order-auto-cancel.md)。ネイティブ設定は存在せず、Flow依存。開発ストアのプランではFlowが開けず検証不可（#8と同じ制約） |
 
 **要件定義に書かれた項目はすべて Shopify 上で実現可能**であることを確認済み。
 
