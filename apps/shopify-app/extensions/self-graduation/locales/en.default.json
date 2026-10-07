@@ -1,0 +1,12 @@
+{
+  "heading": "Dispatch organization",
+  "activeBadge": "Active",
+  "graduatedBadge": "Graduated",
+  "graduatedStatus": "You have graduated. Your account remains active and you can still make purchases.",
+  "graduateButton": "Graduate",
+  "modalHeading": "Graduate from your dispatch organization?",
+  "modalDescription": "This removes your dispatch organization membership. Your account and purchase history stay the same, and you can still place orders.",
+  "confirmButton": "Graduate",
+  "cancelButton": "Cancel",
+  "errorMessage": "Something went wrong. Please try again."
+}

@@ -1,6 +1,6 @@
 # Shopify 実現可能性 検証ログ
 
-最終更新: 2026-09-29
+最終更新: 2026-10-06
 
 対象要件は `docs/human/requirements.md`。個別の調査結果は `docs/research/` 配下にトピックごとに分けてある。**Shopifyの仕様について不明点があれば、まずこのページの一覧から該当する研究ファイルを確認する。**
 
@@ -46,6 +46,7 @@ read_translations, write_translations
 | [app-home-ui-extension.md](./research/app-home-ui-extension.md) | App Home UI Extensionによる、バックエンド不要なロイヤリティ画面の実現可否（Devストアで`shopify.query()`による注文取得・org:タグ絞り込みを実証済み） |
 | [git-management.md](./research/git-management.md) | Shopifyのコード・設定のGit管理可否、テーマ+アプリ構成の制約 |
 | [signup-url-handle.md](./research/signup-url-handle.md) | 会員登録ページのURLハンドル推測困難化、handleへのスラッシュ不可、sitemap自動掲載とseo.hiddenメタフィールドによる除外 |
+| [self-service-status-change.md](./research/self-service-status-change.md) | 顧客自身によるタグ変更は技術的に不可能なこと、顧客によるメタフィールド書き込みは公式サポートされていること、卒業は所属組織からの削除の自己申告であり購入可否には影響しないこと。実装・実機検証済み（Issue #45、仕様は`docs/specs/self-service-status-change.md`）。組織名の自動同期（`Customer tags added`トリガー + Shopify Flow）も追加実装・実機検証済み（2026-10-06） |
 
 ## 可否判定のまとめ
 
@@ -56,7 +57,7 @@ read_translations, write_translations
 | 派遣元ごとの登録URL | 可 | [app-proxy-signup.md](./research/app-proxy-signup.md) |
 | 素の `/signup` を塞ぐ | 可 | 同上 |
 | 管理画面から派遣元を追加 | 可 | [metaobjects.md](./research/metaobjects.md) |
-| 転籍 | 可 | 顧客の所属を書き換えるだけ |
+| 顧客自身による卒業（所属組織からの削除） | 可 | [self-service-status-change.md](./research/self-service-status-change.md)。「転籍」という概念はなく、顧客ができるのは卒業のみ |
 | 注文時点の派遣元スナップショット | 可 | [royalty-snapshot.md](./research/royalty-snapshot.md) |
 | ロイヤリティ集計 | 可 | 同上 |
 | 代引き・銀行振込 | 可 | [checkout.md](./research/checkout.md)。手動決済方法。消込は手作業 |

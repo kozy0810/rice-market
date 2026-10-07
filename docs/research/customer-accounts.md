@@ -7,6 +7,9 @@
 
 この結果、従来の定番手法だった「Liquid の `/account/register` にカスタム登録フォームを置き、hidden field で `customer[tags]` に派遣元を埋め込む」は使えない。
 
+**廃止は2段階。** 2026年2月時点で終了したのは「新規ストア」「legacyを使っていなかった既存ストア」への提供のみで、既にlegacyを使っていた既存ストアの完全廃止（Sunset）日は別途アナウンス予定（未確定）。rice-marketは新規ストアなので、この猶予の有無に関わらずlegacyは最初から選択肢にない。
+出典: https://shopify.dev/docs/apps/build/customer-accounts（Product roadmap）、note記事（下記）
+
 ## 続報（2026-10-02）: legacy廃止後に、アプリ・テーマ開発の仕様に影響した変更
 
 「2026年の customer accounts 移行で、アプリ開発の仕様が何か変わったか」を公式ドキュメントで調査した結果。**ドキュメント確認のみ、実機検証はしていない。**
@@ -54,8 +57,68 @@ legacy廃止（2026-02-26）後、現行 customer accounts には以下が追加
 
 ## 現行 customer accounts の登録時カスタムフィールド
 
-公式ロードマップ上、「Collect customer fields after sign-in」は2026年Q4予定であり、まだリリースされていない。
-出典: https://shopify.dev/docs/apps/build/customer-accounts
+## Howdyアプリの実機評価（2026-10-02、Issue #47）: 現行構成を維持する
+
+note記事由来の「未検証・二次情報」だった内容を、rice-market-devに実際にインストールして検証した。正式名称は **Howdy NewCustomer Registration**（macro micro Inc、Built for Shopify認証取得済み）。料金は顧客数に応じてBasic $4.99/月（1,000人まで）〜Plus $99.99/月（15,000人まで）、開発ストアは全機能無料。
+出典: https://apps.shopify.com/customer-account-app
+
+### 分かったこと
+
+1. **顧客タグはネイティブに付与できる（Flow不要）。** フォーム設定画面に「顧客タグ・リダイレクト設定」セクションがあり、「登録完了タグ」欄に設定した値が登録完了時に自動付与される。カンマ区切りで複数タグを指定でき、実際に `member,org:sakura` の入力を受け付けることを確認した（保存はせず破棄）。当初はApp Store説明文の「Shopify Flowを使った運用もご相談いただけます」という文言から「タグ付与にFlowが必須では」と疑っていたが、これは外れだった。
+2. **ただし「入力値に応じて動的にタグを変える」にはFlowが必要。** 公式Q&A（「誕生日施策で誕生月の顧客タグを付ける方法」）に、Howdyで取得した値を元にタグを変えるには別途Shopify Flowが要る、と明記されている。登録完了タグは**フォームごとに固定の1セット**であり、同じフォーム内で入力値ごとに異なるタグへ分岐させる機能ではない。
+   出典: https://docs.channel.io/howdy-app/ja/categories/QA-95e315c9
+3. **フォームは複数作成できるが、URLで来訪者ごとに出し分ける仕組みが存在しない。** 「フォームを作成」から追加のフォームを作ることは実際にでき、料金プランにもフォーム数の制限記載はない。しかしフォームは `shopify.com/authentication/...` という**共有の認証フロー**に注入される形で、どのフォームを誰に見せるかを決める導線（URLパラメータ、専用リンク等）がヘルプセンターのQ&A（14件）のどこにも見当たらなかった。一般設定にある「会員登録フォームの設置タイミング」も「ログイン前」「ログイン後」の2択のみで、派遣元ごとの振り分けとは無関係。**複数フォームを作れても、派遣元ごとに出し分ける手段がない以上、この用途には使えない公算が高い。**
+4. **派遣元固有の秘匿URLという概念自体がない。** 現行構成（Shopify Forms + Page）の秘匙性は `/pages/signup-<token>` というPage固有のURLに由来するが、Howdyのフォームは全顧客共通の認証入口（メールアドレス→6桁コード）の中に挟み込まれる。「セルフサービスのサインインだけでは購入者を限定できない」（本ファイル後述、実証済み）という既存の制約は、Howdyを挟んでも変わらない。
+5. `/pages/signup/<token>` のような2階層パスのURLも実現しない（Howdy経由でも `/account/...` 配下にとどまる）。`docs/research/signup-url-handle.md` の「2階層パスはHydrogen以外に実現手段がない」という判定は変わらない。
+
+検証後、rice-market-devからHowdyアプリはアンインストール済み。
+
+### 結論: 現行構成（Shopify Forms + Page）を維持する
+
+Issue #42の完了条件（hidden input経由の招待コード→タグ付与の実機確認）は、確認すべき問いそのものを「ネイティブにタグ付与できるか」（できる）から「派遣元ごとにURLで出し分けられるか」（できない）に置き換えて評価した。現行構成はPage handleによる派遣元固有URLと、Formsのタグ欄によるネイティブなタグ付与の両方を無料で実現しており、既に実証済み（`tags: ["member", "org:sakura", "shopify-forms-1161577"]`）。Howdyが強みとするメタフィールド管理・プロフィールページのカスタマイズ・住所自動入力は、rice-marketの要件には不要。月額コストを払って切り替える理由はない。
+
+## Legacy と 現行、カスタマイズできること・できないこと（2026-10-02 再調査）
+
+### アーキテクチャそのものの違い
+
+Legacy では、テーマが `customers/register` / `customers/login` / `customers/account` など7種のLiquidテンプレートを持ち、サインイン・登録画面はテーマの一部として自由に改変できた。現行ではこれらのテンプレートは廃止され、**customer accountsはテーマから完全に独立して動作する**。テーマからこれらのテンプレートを削除すると、自動的に現行方式へアップグレードされる——つまり「段階的に移行する」のではなく「テーマ側の担当範囲がまるごと無くなる」という設計変更である。
+出典: https://shopify.dev/docs/storefronts/themes/architecture/templates
+
+### カスタマイズ可否 総覧
+
+| 項目 | Legacy | 現行 | 現行での実現方法 |
+|---|---|---|---|
+| 登録・サインイン画面のHTML構造/フィールド構成 | 自由（Liquid） | 不可。Shopifyが別ドメイン（`shopify.com/authentication/...`）で完全ホスト | — |
+| 登録時のカスタムフィールド追加（招待コード等） | hidden fieldで実現 | 不可。ロードマップ上「Collect customer fields after sign-in」は2026年Q4予定、未リリース | — |
+| 登録を招待制・承認制にする | テーマ側で作り込み可能だった | 不可。該当する管理画面設定が存在しない（下記「セルフサービスのサインインだけでは購入者を限定できない」で実機確認済み） | — |
+| サインイン・登録フローへのアプリ拡張 | 非対応 | 非対応。Customer Account UI Extensionsのtarget一覧に sign-in/registration 系は存在しない（Order index・Order status・Profile・新規ページのみ） | — |
+| 配色・フォント・角丸・背景画像・favicon | テーマのCSS | 可能 | Checkout and Accounts Configuration API（Admin GraphQL） |
+| ヘッダーのアカウントアイコンの見た目 | テーマ側で自由 | 限定的。スロットとCSSカスタムプロパティのみ、構造は不変 | `<shopify-account>` コンポーネント |
+| 注文一覧・注文詳細・プロフィールページへの要素追加 | 不可 | 可能 | Customer Account UI Extensions（`render-after`, `block.render`, `announcement.render` 等） |
+| 全く新しいページの追加（ウィッシュリスト等） | 不可 | 可能 | Full-page extension（`customer-account.page.render`） |
+
+### 会員登録フロー
+
+- **Legacy**: `/account/register` がテーマのLiquidテンプレートとして存在し、フィールド追加・バリデーション・リダイレクト先など自由に実装できた。
+- **現行**: サインイン・登録は `shopify.com/authentication/.../login` という別ドメインに遷移し、見出しは "Sign in or create an account"（下記セクションで実機確認済み）。方式はメールアドレス入力 → 6桁の認証コード、というパスワードレス方式（下記Issue #6の実機検証で確認済み）。新規顧客か既存顧客かの判定も含め、全てShopify側のロジックで完結し、テーマやアプリが途中に割り込む余地がない。
+- Howdyのようなサードパーティアプリ（実機検証済み、下記参照）は、この**共有の認証フロー自体の中**に自前のフォームを挿入し、新規/既存を判別して登録フォームかサインイン導線かを出し分けている。Shopify標準のフローそのものを書き換えているわけではなく、派遣元ごとに異なる入口を用意する機能でもない。
+
+### ストアごとのアカウントページ
+
+- **`<shopify-account>` コンポーネント**: テーマのヘッダーに設置するアバター。クリックでアカウントシート（ドロワー）が開き、サインイン方法（パスワードレス・Shop自動認識・ソーシャルログイン）や注文・プロフィールへのリンクを表示する。
+  - できる: CSSカスタムプロパティ（`--shopify-account-*`）での配色調整、`signed-out-avatar` スロットでのアイコン差し替え
+  - できない: コンポーネントの構造・機能自体の変更。公式に「Shopify controls this component and can update it independently of your theme」と明記されている
+  出典: https://shopify.dev/docs/storefronts/themes/customer-engagement/account-component, https://shopify.dev/docs/api/storefront-web-components/components/shopify-account
+- **Order index / Order status / Profile ページ**: Customer Account UI Extensionsの各種targetで要素を追加できる。公式が挙げる用途例は、マーケティング配信のオプトイン、利用規約への同意、ギフトラッピング等のアドオン選択など。
+  出典: https://shopify.dev/docs/apps/build/customer-accounts
+- **新規ページの追加**: Full-page extension（`customer-account.page.render`）で、ウィッシュリストやサブスクリプション管理のような、既存ページに収まらないページを丸ごと追加できる。
+  出典: https://shopify.dev/docs/apps/build/customer-accounts/full-page-extensions
+- **ブランディング**: Checkout and Accounts Configuration API（Admin GraphQL）で、チェックアウト・サインイン・アカウントページを横断的にスタイリングできる（背景、ボーダー、カラー、角丸、パディング、シャドウ、背景画像、フォーム部品のスタイル、favicon等）。必要スコープは `read_checkout_and_accounts_configurations` または `read_checkout_settings`、加えて `manage_checkout_settings` 権限とショップ側の機能アクセス。
+  出典: https://shopify.dev/docs/apps/build/checkout/styling, https://shopify.dev/docs/api/admin-graphql/2026-07/objects/CheckoutAndAccountsConfigurationBrandingSignInMain
+
+### rice-marketへの影響（結論は変わらない）
+
+見た目（配色・ロゴ・背景画像等）はAPI経由でかなり自由に調整できるが、**「誰が登録できるか」という機能面の制御は現行customer accountsのどの拡張ポイントにも存在しない。** この境界線が、Shopify Forms + Pageという現行アーキテクチャ（Issue #42で実装）を選んだ理由として変わらず残る。
 
 ## セルフサービスのサインインだけでは購入者を限定できない（実証済み）
 
