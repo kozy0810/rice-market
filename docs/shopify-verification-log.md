@@ -1,6 +1,6 @@
 # Shopify 実現可能性 検証ログ
 
-最終更新: 2026-10-06
+最終更新: 2026-10-07
 
 対象要件は `docs/human/requirements.md`。個別の調査結果は `docs/research/` 配下にトピックごとに分けてある。**Shopifyの仕様について不明点があれば、まずこのページの一覧から該当する研究ファイルを確認する。**
 
@@ -15,13 +15,16 @@
 | ストアフロントパスワード | `rteild` |
 | 組織（Dev Dashboard） | `kozy` / `231816619` |
 | 組織（Partner） | `5130284` |
-| Shopify CLI | 4.8.0 |
+| Shopify CLI | 4.8.3 |
 
-CLI は `shopify store auth` で以下のスコープを付与済み。
+CLI は `shopify store auth` で以下のスコープを付与済み（2026-10-02、Issue #44スパイクで`write_orders`以降を追加）。
 
 ```
 read_products, write_products, read_customers, write_customers,
-read_orders, read_themes, read_shipping, read_discounts,
+read_orders, write_orders, read_draft_orders, write_draft_orders,
+read_merchant_managed_fulfillment_orders, write_merchant_managed_fulfillment_orders,
+read_assigned_fulfillment_orders, write_assigned_fulfillment_orders,
+read_themes, read_shipping, read_discounts,
 read_translations, write_translations
 ```
 
@@ -40,6 +43,7 @@ read_translations, write_translations
 | [metaobjects.md](./research/metaobjects.md) | 派遣元マスタの設計、管理画面からの追加、ハンドル自動生成問題 |
 | [checkout.md](./research/checkout.md) | 決済手段・重量別送料・多言語のチェックアウト実機確認 |
 | [royalty-snapshot.md](./research/royalty-snapshot.md) | 注文時点の派遣元スナップショットとロイヤリティ集計 |
+| [app-home-ui-extension.md](./research/app-home-ui-extension.md) | App Home UI Extensionによる、バックエンド不要なロイヤリティ画面の実現可否（Devストアで`shopify.query()`による注文取得・org:タグ絞り込みを実証済み） |
 | [git-management.md](./research/git-management.md) | Shopifyのコード・設定のGit管理可否、テーマ+アプリ構成の制約 |
 | [signup-url-handle.md](./research/signup-url-handle.md) | 会員登録ページのURLハンドル推測困難化、handleへのスラッシュ不可、sitemap自動掲載とseo.hiddenメタフィールドによる除外 |
 | [self-service-status-change.md](./research/self-service-status-change.md) | 顧客自身によるタグ変更は技術的に不可能なこと、顧客によるメタフィールド書き込みは公式サポートされていること、卒業は所属組織からの削除の自己申告であり購入可否には影響しないこと。実装・実機検証済み（Issue #45、仕様は`docs/specs/self-service-status-change.md`）。組織名の自動同期（`Customer tags added`トリガー + Shopify Flow）も追加実装・実機検証済み（2026-10-06） |

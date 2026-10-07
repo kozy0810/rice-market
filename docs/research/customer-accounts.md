@@ -10,6 +10,53 @@
 **廃止は2段階。** 2026年2月時点で終了したのは「新規ストア」「legacyを使っていなかった既存ストア」への提供のみで、既にlegacyを使っていた既存ストアの完全廃止（Sunset）日は別途アナウンス予定（未確定）。rice-marketは新規ストアなので、この猶予の有無に関わらずlegacyは最初から選択肢にない。
 出典: https://shopify.dev/docs/apps/build/customer-accounts（Product roadmap）、note記事（下記）
 
+## 続報（2026-10-02）: legacy廃止後に、アプリ・テーマ開発の仕様に影響した変更
+
+「2026年の customer accounts 移行で、アプリ開発の仕様が何か変わったか」を公式ドキュメントで調査した結果。**ドキュメント確認のみ、実機検証はしていない。**
+
+### ロードマップの進捗（https://shopify.dev/docs/apps/build/customer-accounts）
+
+legacy廃止（2026-02-26）後、現行 customer accounts には以下が追加されている。カッコ内は出荷時期。
+
+- Customer account web component for storefronts（2026年2月、出荷済み）→ 後述の `shopify-account` コンポーネント
+- 365日間のサインイン保持（2026年3月、出荷済み）
+- サインイン画面でのマーケティング同意取得（2026年3月、出荷済み）
+- IDプロバイダからの顧客データ自動同期（2026年3月、出荷済み）
+- Checkout and Accounts Configuration API（チェックアウト・顧客アカウント・サインイン画面のブランディングを横断制御）（2026年5月、出荷済み）
+- チェックアウト＆アカウントエディタでのサインイン画面カスタマイズ（2026年5月、出荷済み）
+- アカウント画面のデザイン改善（2026年6月、出荷済み）
+- Sign in with Apple（2026年Q3予定）
+- 顧客の状態・初回サインイン検知のサポート（2026年Q4予定、**未出荷**）
+- **「サインイン後にカスタムフィールドを収集する」機能（2026年Q4予定、依然未出荷）**
+- ソーシャルサインインの設定API（2027年Q1予定）
+
+**rice-marketへの影響:** 「サインイン後にカスタムフィールドを収集する」が未出荷のままなので、以前からの結論（＝顧客作成時にAdmin API/Shopify Formsで事前にタグを埋め込む方式を使う。サインイン後に本人が派遣元を入力する方式は選べない）は変わらない。
+
+### 新規: `shopify-account` Webコンポーネント（ストアフロントのヘッダー用）
+
+2026年2月に導入。ストアフロントのヘッダーにアバターを表示し、クリックするとサインイン・アカウントメニュー（注文・プロフィールなど）のシートが開く。パスワードレスサインイン、Shop/Google/Facebookでのサインインに対応。
+
+- 2026年7月30日付で、**Theme Storeに新規提出・更新するテーマへの搭載が必須**になった（`docs/research`記載時点のthemeが今後Theme Store配布を目指すなら影響するが、rice-marketは自社カスタムテーマでTheme Store提出はしないため必須要件ではない）
+- 同時に、「legacy customer accounts用のテンプレートファイルをテーマに含める必要はなくなった」という告知も出ている
+
+出典:
+- https://shopify.dev/changelog/posts/the-shopify-account-component-for-customer-accounts-is-now-a-theme-store-requirement
+- https://shopify.dev/changelog/posts/shopify-account-web-component-for-storefronts
+- https://shopify.dev/docs/storefronts/themes/customer-engagement/account-component
+
+**確認した事実: `themes/storefront/sections/header.liquid` には、すでに公式の `<shopify-account>` コンポーネントが実装されている**（`shop.customer_accounts_enabled` の条件分岐、`menu`属性、CSS変数によるスタイリングまで含めて該当箇所と一致）。ベースにしている Dawn テーマが2026年2月以降の最新版を取り込んでいるため、この変更は**対応済み・追加作業不要**と判断できる。
+
+### 変化していないと確認できたこと
+
+`customerCreate`・`customerGenerateAccountActivationUrl`（account_activation_url発行）・`customerSendAccountInviteEmail`（招待メール送信）といった、rice-marketの登録フロー（App Proxy/Shopify Formsで顧客を事前作成する方式）が依存するAdmin API（REST/GraphQL）のエンドポイントは、unstable/2027-01まで変更なく存在する。**legacy customer accountsの廃止は、これらのAdmin API自体には影響していない。**
+
+### 未確認のまま残る点
+
+- Checkout and Accounts Configuration APIが、サインイン画面の多言語対応（ベトナム語など、`customer-accounts.md`既出の「Formの文言が英語のまま」問題）の改善に使えるかどうかは未調査。Issue #15（多言語対応）着手時に確認する価値がある
+- 「Shopで続行する」経由の登録がタグ付与を迂回するかどうかは、2026-09-24時点の検証でも未検証のまま（本ファイル既出）
+
+## 現行 customer accounts の登録時カスタムフィールド
+
 ## Howdyアプリの実機評価（2026-10-02、Issue #47）: 現行構成を維持する
 
 note記事由来の「未検証・二次情報」だった内容を、rice-market-devに実際にインストールして検証した。正式名称は **Howdy NewCustomer Registration**（macro micro Inc、Built for Shopify認証取得済み）。料金は顧客数に応じてBasic $4.99/月（1,000人まで）〜Plus $99.99/月（15,000人まで）、開発ストアは全機能無料。

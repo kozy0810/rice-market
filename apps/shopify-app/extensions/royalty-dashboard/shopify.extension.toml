@@ -1,0 +1,14 @@
+api_version = "2026-04"
+
+[[extensions]]
+# Change the merchant-facing name of the extension in locales/en.default.json
+name = "t:name"
+handle = "royalty-dashboard"
+type = "ui_extension"
+uid = "1e45028f-b81d-db1d-1e0b-bce80fa67a0ae6b6081e"
+
+# Only 1 target can be specified for each app-home extension
+[[extensions.targeting]]
+module = "./src/AppHome.jsx"
+target = "admin.app.home.render"
+assets = "./assets"
