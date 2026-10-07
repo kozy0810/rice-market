@@ -395,6 +395,73 @@ royalty-dashboard successfully built in 56ms (30.9 KB original, ~10.7 KB compres
 
 ユニットテストは計24件（既存20件+今回4件）、全てパス。
 
+## マージ後の再デプロイ・実機確認を試みたが未達（2026-10-07）
+
+Issue #44の多派遣元一覧表示（`aggregateOrdersByOrg`／`buildAllOrgsOrdersSearchQuery`）実装を、`origin/main`マージ後（Issue #45由来の`customer_read_customers`/`customer_write_customers`スコープ追加を含む）の状態で`feat/issue-44-royalty-multi-org`ブランチのworktree（`.claude/worktrees/rippling-scribbling-honey/apps/shopify-app`）から再デプロイし、ブラウザで動作確認しようとしたが、**環境上の制約により再デプロイ・ブラウザ確認の両方とも完了できなかった。**
+
+### 1. 作業開始前に見つけた問題: 別worktreeの`shopify app dev`が同じDevストアに対して起動中だった
+
+作業開始時、`ps aux`で以下が確認できた。
+
+```
+node .../rice-market/apps/shopify-app/node_modules/.bin/../@shopify/cli/bin/run.js app dev --store rice-market-dev.myshopify.com
+.../cloudflared tunnel --url http://localhost:55847 --no-autoupdate
+```
+
+これは**今回の作業ディレクトリ（worktree）ではなく、メインの`apps/shopify-app`から起動された別セッションの`shopify app dev`**で、同じ`rice-market-dev.myshopify.com`を対象にしていた。2026-10-04の既存記録（本ファイル上部）にある「開発プレビューが残っていると新しいデプロイが反映されない」罠に抵触する状態だったため、`pkill -f 'cloudflared tunnel'; pkill -f 'shopify app dev'`で停止した。
+
+**ただしこれは`Ctrl+C`によるクリーンな終了ではなく`pkill`による強制終了であり、2026-10-04の記録が示す通り、管理画面側に「開発プレビュー」が登録されたまま残っている可能性がある。** 今回は後述の理由でブラウザから管理画面を開けなかったため、「開発プレビューをクリーンアップ」ダイアログでの後始末ができていない。**次にこのDevストアで作業する人・エージェントは、まず管理画面下部の「開発プレビュー」インジケーターの有無を確認し、残っていればクリーンアップしてから作業を始める必要がある。**
+
+### 2. `shopify app deploy`はPartner組織への対話的ログイン（デバイスコード・ブラウザ）を要求し、本セッションでは完了できなかった
+
+worktree内（`node_modules/.bin/shopify`が存在することを確認済み）で`npx shopify app deploy --allow-updates`を実行したところ、以下が出力された。
+
+```
+To run this command, log in to Shopify.
+User verification code: XJQJ-VNTS
+Opened link to start the auth process: https://accounts.shopify.com/activate-with-code?device_code%5Buser_code%5D=XJQJ-VNTS
+```
+
+誰もこのリンクを開いて認証を完了させられなかったため、タイムアウトで`Pf: The operation was aborted.`となり処理は失敗した（表示コード`XJQJ-VNTS`は失効済み）。
+
+**分かったこと: `shopify app deploy`に必要なログインは、`shopify store auth`で得られるストアレベルの認証とは別物。** 同じセッションで`shopify store execute -s rice-market-dev.myshopify.com -q 'query { shop { name } }'`を実行すると、ブラウザ操作なしで即座に成功した（キャッシュされたストアレベル認証が生きている）。一方`shopify app deploy`はPartner組織アカウントへのデバイスコード方式のブラウザログインを要求し、これは別の認証経路であり、今回の作業セッションにはブラウザ操作手段（ブラウザ操作ツール・GUI操作手段）が与えられていなかったため完了できなかった。
+
+**したがって今回は、マージ後のコード（`origin/main`マージ・新スコープ追加後）を実際にDevストアへ再デプロイすることができていない。** 依頼にあった「スコープ変更による再同意フローが要求されたら許可して進める」以前の、デプロイ実行そのものの段階でブロックされた。
+
+### 3. 上記2点の結果、依頼されたブラウザでの5項目の実機確認はすべて未検証
+
+デプロイが完了していないこと、およびこのセッションに管理画面を操作するブラウザ操作手段がないことの両方により、以下はいずれも**未検証**のまま。
+
+- 年・月を指定して集計し、派遣元ごとの行（件数・合計売上・ロイヤリティ額）が一覧表示されること
+- 複数派遣元が別々の行で出ること
+- `dispatch_org`メタオブジェクトの組織名（コードでなく名前）で表示されること
+- 60日境界を跨ぐ月を選んだ場合の警告バナー
+- 発送済み注文0件の月での「対象の発送済み注文は見つかりませんでした」表示
+
+これらのロジック自体は、2026-10-06の既存記録にある通り`aggregateOrdersByOrg`等のユニットテスト（24件、全通過）で検証済みだが、**今回のマージ後コードをDevストアに実際にデプロイしてブラウザで動かした実機確認ではない。**
+
+### 4. 確認できた唯一の実データ
+
+`shopify store execute`（ストアレベル認証、ブラウザ不要）で、既存のテスト注文がまだ存在していることだけは確認できた。
+
+```
+#1001 org:test-agency-b createdAt=2026-09-20 FULFILLED           700.0 JPY
+#1002 org:sakura        createdAt=2026-09-25 FULFILLED          5500.0 JPY
+#1003 org:test-agency-b createdAt=2026-10-02 UNFULFILLED        6000.0 JPY
+#1004 org:sakura        createdAt=2026-10-02 FULFILLED         15000.0 JPY
+#1005 org:test-agency-b createdAt=2026-10-02 PARTIALLY_FULFILLED 6000.0 JPY
+```
+
+2026-10-02時点の記録と一致しており、5日間・複数回のマージを経ても削除・変更されていない。次回ブラウザ確認が可能なセッションでそのまま使える。
+
+また、`currentAppInstallation { app { title } }`をストアレベル認証で問い合わせると`"Shopify CLI Connector App"`が返り、CLIの開発プレビューの有無を判定する手がかりにはならなかった（この認証経路からは開発プレビューの状態は見えない）。
+
+### 5. 次にやるべきこと
+
+- 管理画面を人間が開き、下部の「開発プレビュー」インジケーターの有無を確認し、残っていればクリーンアップする（上記1の後始末）
+- ブラウザ操作が可能な環境（または人間）で`.claude/worktrees/rippling-scribbling-honey/apps/shopify-app`から`npx shopify app deploy --allow-updates`を再実行し、表示されるデバイスコードのリンクを開いて認証を完了させる
+- デプロイ完了後、本ファイル3節の5項目をあらためて実機確認する
+
 ## 判定（2026-10-04時点）: 可。本番運用には#8と`read_all_orders`申請が必要、ただし#8の見通しは好転した可能性がある
 
 Issue #44の3つの完了条件は、いずれもDevストアの実データで実機確認できている。`shopify app deploy`後の再同意フローも実機で動作確認済み。本番運用には引き続き#8（注文への派遣元自動タグ付け）の実装と`read_all_orders`スコープの承認申請が必要だが、#8の候補手段であるShopify Flowが以前より進んだ状態（ワークフロー作成画面まで到達可能）にあることが分かり、見通しが好転した可能性がある。このIssueはクローズしていない。
