@@ -1,3 +1,5 @@
+import {isValidOrgCode} from './searchQuery.js';
+
 // Shopifyの金額は文字列（例 "700.0"）で返る。parseFloatで合算すると
 // 浮動小数点誤差が蓄積しうるため、文字列のまま整数化してから整数同士で合算する。
 //
@@ -74,4 +76,51 @@ export function aggregateOrders(orders, royaltyRatePercent) {
     royaltyAmountYen: scaledToRoundedYen(royaltyScaled),
     currencyCode,
   };
+}
+
+/**
+ * 注文のタグ配列から "org:" で始まるタグを探し、派遣元コードを取り出す。
+ * 見つからない、または org_code として不正な形式（半角英数字とハイフン以外を含む）
+ * の場合は null を返し、呼び出し側で集計対象から除外する。
+ */
+function extractOrgCode(tags) {
+  const tag = (Array.isArray(tags) ? tags : []).find((t) => typeof t === 'string' && t.startsWith('org:'));
+  if (!tag) {
+    return null;
+  }
+  const orgCode = tag.slice('org:'.length);
+  return isValidOrgCode(orgCode) ? orgCode : null;
+}
+
+/**
+ * 注文一覧を派遣元(org:タグ)ごとにグルーピングし、それぞれについて
+ * aggregateOrders と同じ内訳(対象注文数・合計売上・ロイヤリティ額)を算出する。
+ * 表示上の「見やすさ」のため、ロイヤリティ額が大きい順（同額ならorgCode順）に並べる。
+ *
+ * @param {Array<object>} orders
+ * @param {string|number} royaltyRatePercent
+ * @returns {Array<{orgCode: string, orderCount: number, totalRevenueYen: number, royaltyAmountYen: number, currencyCode: string|null}>}
+ */
+export function aggregateOrdersByOrg(orders, royaltyRatePercent) {
+  const list = Array.isArray(orders) ? orders : [];
+
+  const ordersByOrgCode = new Map();
+  for (const order of list) {
+    const orgCode = extractOrgCode(order?.tags);
+    if (!orgCode) {
+      continue;
+    }
+    if (!ordersByOrgCode.has(orgCode)) {
+      ordersByOrgCode.set(orgCode, []);
+    }
+    ordersByOrgCode.get(orgCode).push(order);
+  }
+
+  const rows = Array.from(ordersByOrgCode.entries()).map(([orgCode, orgOrders]) => ({
+    orgCode,
+    ...aggregateOrders(orgOrders, royaltyRatePercent),
+  }));
+
+  rows.sort((a, b) => b.royaltyAmountYen - a.royaltyAmountYen || a.orgCode.localeCompare(b.orgCode));
+  return rows;
 }

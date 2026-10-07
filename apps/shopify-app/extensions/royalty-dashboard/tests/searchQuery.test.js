@@ -1,5 +1,10 @@
 import {describe, test, expect} from 'vitest';
-import {buildOrdersSearchQuery, monthRangeJst, isValidOrgCode} from '../src/searchQuery.js';
+import {
+  buildAllOrgsOrdersSearchQuery,
+  monthRangeJst,
+  isValidOrgCode,
+  isMonthOutsideDefaultOrderWindow,
+} from '../src/searchQuery.js';
 
 describe('monthRangeJst', () => {
   test('月の範囲をJSTオフセット付きISO8601で返す', () => {
@@ -30,15 +35,33 @@ describe('isValidOrgCode', () => {
   });
 });
 
-describe('buildOrdersSearchQuery', () => {
-  test('組織コード・発送済み・月範囲をANDで組み立てる（ハイフンを含むコードも正しくクオートする）', () => {
-    const query = buildOrdersSearchQuery({orgCode: 'test-agency-b', year: 2026, month: 10});
+describe('buildAllOrgsOrdersSearchQuery', () => {
+  test('派遣元を問わずorg:タグ・発送済み・月範囲をANDで組み立てる', () => {
+    const query = buildAllOrgsOrdersSearchQuery({year: 2026, month: 10});
     expect(query).toBe(
-      "tag:'org:test-agency-b' AND fulfillment_status:fulfilled AND created_at:>='2026-10-01T00:00:00+09:00' AND created_at:<'2026-11-01T00:00:00+09:00'",
+      "tag_prefix:org: AND fulfillment_status:fulfilled AND created_at:>='2026-10-01T00:00:00+09:00' AND created_at:<'2026-11-01T00:00:00+09:00'",
     );
   });
+});
 
-  test('不正な組織コードは例外を投げる（検索クエリへのインジェクション防止）', () => {
-    expect(() => buildOrdersSearchQuery({orgCode: "' OR 1=1 --", year: 2026, month: 10})).toThrow();
+describe('isMonthOutsideDefaultOrderWindow', () => {
+  const now = new Date('2026-10-04T12:00:00+09:00');
+
+  test('今月は範囲内', () => {
+    expect(isMonthOutsideDefaultOrderWindow({year: 2026, month: 10}, now)).toBe(false);
+  });
+
+  test('60日以内に収まる前月は範囲内', () => {
+    expect(isMonthOutsideDefaultOrderWindow({year: 2026, month: 9}, now)).toBe(false);
+  });
+
+  test('月初が60日より前になる月は範囲外', () => {
+    // 2026-07-01は2026-10-04の95日前で、60日の範囲に入らない
+    expect(isMonthOutsideDefaultOrderWindow({year: 2026, month: 7}, now)).toBe(true);
+  });
+
+  test('ちょうど60日前が月初になる場合は範囲内（境界の厳密な仕様が不明なため目安の判定）', () => {
+    const exactBoundaryNow = new Date('2026-08-30T00:00:00+09:00'); // 2026-07-01から60日後
+    expect(isMonthOutsideDefaultOrderWindow({year: 2026, month: 7}, exactBoundaryNow)).toBe(false);
   });
 });

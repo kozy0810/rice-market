@@ -27,21 +27,41 @@ export function monthRangeJst(year, month) {
   };
 }
 
+// Admin GraphQL APIは read_orders / write_orders だけでは「直近60日分の注文」しか
+// 読めない（それより古い注文には要承認スコープ read_all_orders が必要）。公式ドキュメントは
+// 「last 60 days' worth of orders」という一文のみで、60日の起点やタイムゾーンの扱いは
+// 明記されていない。境界の厳密な仕様が不明なため、この関数は「対象月の開始日が、今日から
+// 60日前より前かどうか」で判定する目安であり、実際の境界とズレる可能性がある前提で使う。
+const DEFAULT_ORDER_ACCESS_WINDOW_DAYS = 60;
+
+/**
+ * 指定した年月(JST)が、Admin APIのデフォルトアクセス範囲(直近60日)の外に
+ * 出ている可能性があるかを判定する。true の場合、read_all_orders 未承認だと
+ * 集計結果が0件または不完全になりうることをUI側で警告する目的で使う。
+ *
+ * @param {{year: number, month: number}} params
+ * @param {Date} [now]
+ * @returns {boolean}
+ */
+export function isMonthOutsideDefaultOrderWindow({year, month}, now = new Date()) {
+  const {start} = monthRangeJst(year, month);
+  const windowStart = new Date(now.getTime() - DEFAULT_ORDER_ACCESS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  return new Date(start) < windowStart;
+}
+
 /**
  * ロイヤリティ集計用のGraphQL Admin API検索クエリ文字列を組み立てる。
+ * 派遣元を問わず、org:タグが付いた発送済み注文を対象月分すべて取得する
+ * （組織ごとの内訳は取得後にクライアント側で集計する。 aggregate.js の
+ * aggregateOrdersByOrg 参照）。
  *
- * @param {{orgCode: string, year: number, month: number}} params
+ * @param {{year: number, month: number}} params
  * @returns {string}
  */
-export function buildOrdersSearchQuery({orgCode, year, month}) {
-  if (!isValidOrgCode(orgCode)) {
-    throw new Error(`invalid orgCode: ${orgCode}`);
-  }
+export function buildAllOrgsOrdersSearchQuery({year, month}) {
   const {start, end} = monthRangeJst(year, month);
-  // tag: は完全一致だがクオートが必須（クオートを忘れると前方一致扱いのtag_prefix:と
-  // 混同しやすく、実際にDevストアの検証でクオート漏れにより0件になったことがある）。
   return [
-    `tag:'org:${orgCode}'`,
+    'tag_prefix:org:',
     'fulfillment_status:fulfilled',
     `created_at:>='${start}'`,
     `created_at:<'${end}'`,

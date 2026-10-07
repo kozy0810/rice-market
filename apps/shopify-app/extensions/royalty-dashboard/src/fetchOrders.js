@@ -12,6 +12,7 @@ export const ORDERS_QUERY = `
       nodes {
         id
         name
+        tags
         currentSubtotalPriceSet {
           shopMoney { amount currencyCode }
         }

@@ -1,9 +1,10 @@
 import {describe, test, expect} from 'vitest';
-import {aggregateOrders} from '../src/aggregate.js';
+import {aggregateOrders, aggregateOrdersByOrg} from '../src/aggregate.js';
 import ordersEmpty from './fixtures/orders-empty.json';
 import ordersMultiple from './fixtures/orders-multiple.json';
 import ordersDecimalSubtotal from './fixtures/orders-decimal-subtotal.json';
 import ordersRoundingBoundary from './fixtures/orders-rounding-boundary.json';
+import ordersMultiOrg from './fixtures/orders-multi-org.json';
 
 describe('aggregateOrders', () => {
   test('0件のときはNaNにならず、すべて0になる', () => {
@@ -47,5 +48,38 @@ describe('aggregateOrders', () => {
   test('注文配列以外（null/undefined）を渡されても例外を投げない', () => {
     expect(aggregateOrders(null, '1.5').orderCount).toBe(0);
     expect(aggregateOrders(undefined, '1.5').orderCount).toBe(0);
+  });
+});
+
+describe('aggregateOrdersByOrg', () => {
+  test('org:タグごとにグルーピングし、派遣元ごとの内訳を返す', () => {
+    const rows = aggregateOrdersByOrg(ordersMultiOrg, '1.5');
+    const byOrgCode = Object.fromEntries(rows.map((r) => [r.orgCode, r]));
+
+    expect(byOrgCode['test-agency-b']).toMatchObject({orderCount: 1, totalRevenueYen: 700});
+    expect(byOrgCode['sakura']).toMatchObject({orderCount: 2, totalRevenueYen: 20500});
+  });
+
+  test('org:タグが無い注文は、どの派遣元にも計上されない', () => {
+    const rows = aggregateOrdersByOrg(ordersMultiOrg, '1.5');
+    const totalOrderCount = rows.reduce((sum, r) => sum + r.orderCount, 0);
+    // fixtureの#1006（org:タグ無し）を除いた3件だけが計上される
+    expect(totalOrderCount).toBe(3);
+    expect(rows.every((r) => r.totalRevenueYen !== 999999)).toBe(true);
+  });
+
+  test('ロイヤリティ額が大きい順に並ぶ（同額ならorgCode順）', () => {
+    const rows = aggregateOrdersByOrg(ordersMultiOrg, '1.5');
+    // sakura: 20500*1.5%=308円, test-agency-b: 700*1.5%=11円 → sakuraが先
+    expect(rows.map((r) => r.orgCode)).toEqual(['sakura', 'test-agency-b']);
+  });
+
+  test('0件のときは空配列を返す', () => {
+    expect(aggregateOrdersByOrg(ordersEmpty, '1.5')).toEqual([]);
+  });
+
+  test('注文配列以外（null/undefined）を渡されても例外を投げない', () => {
+    expect(aggregateOrdersByOrg(null, '1.5')).toEqual([]);
+    expect(aggregateOrdersByOrg(undefined, '1.5')).toEqual([]);
   });
 });

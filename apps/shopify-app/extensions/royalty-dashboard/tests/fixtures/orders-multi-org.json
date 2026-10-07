@@ -1,0 +1,30 @@
+[
+  {
+    "name": "#1001",
+    "tags": ["org:test-agency-b"],
+    "currentSubtotalPriceSet": {
+      "shopMoney": {"amount": "700.0", "currencyCode": "JPY"}
+    }
+  },
+  {
+    "name": "#1002",
+    "tags": ["member", "org:sakura"],
+    "currentSubtotalPriceSet": {
+      "shopMoney": {"amount": "5500.0", "currencyCode": "JPY"}
+    }
+  },
+  {
+    "name": "#1004",
+    "tags": ["member", "org:sakura"],
+    "currentSubtotalPriceSet": {
+      "shopMoney": {"amount": "15000.0", "currencyCode": "JPY"}
+    }
+  },
+  {
+    "name": "#1006",
+    "tags": ["member"],
+    "currentSubtotalPriceSet": {
+      "shopMoney": {"amount": "999999.0", "currencyCode": "JPY"}
+    }
+  }
+]

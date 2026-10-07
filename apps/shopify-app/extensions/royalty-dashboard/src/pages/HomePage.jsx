@@ -1,6 +1,6 @@
 import {useState, useEffect, useMemo} from 'preact/hooks';
-import {aggregateOrders} from '../aggregate.js';
-import {buildOrdersSearchQuery, isValidOrgCode} from '../searchQuery.js';
+import {aggregateOrdersByOrg} from '../aggregate.js';
+import {buildAllOrgsOrdersSearchQuery, isMonthOutsideDefaultOrderWindow} from '../searchQuery.js';
 import {fetchAllFulfilledOrders, ORDERS_PAGE_SIZE, MAX_ORDER_PAGES} from '../fetchOrders.js';
 
 // shopify.app.toml の [metaobjects.app.dispatch_org] の name と一致させる。
@@ -38,7 +38,9 @@ function yearOptions(currentYear) {
   return [currentYear - 1, currentYear, currentYear + 1];
 }
 
-async function loadDispatchOrgs() {
+// 派遣元名の表示解決にだけ使う（画面上の集計条件からは派遣元の指定自体を無くした）。
+// マスタ未登録の組織はコードのままテーブルに表示する。
+async function loadDispatchOrgNames() {
   const defResult = await shopify.query(DISPATCH_ORG_DEFINITION_QUERY);
   if (defResult.errors) {
     throw new Error(JSON.stringify(defResult.errors));
@@ -46,9 +48,9 @@ async function loadDispatchOrgs() {
   const definition = (defResult.data?.metaobjectDefinitions?.nodes ?? []).find(
     (node) => node.name === DISPATCH_ORG_DEFINITION_NAME,
   );
-  // 定義がまだ無いストア（構築直後など）では、ドロップダウンは空のまま自由入力だけで運用する。
+  // 定義がまだ無いストア（構築直後など）では、コード表示のまま運用する。
   if (!definition) {
-    return [];
+    return {};
   }
 
   const listResult = await shopify.query(DISPATCH_ORGS_QUERY, {
@@ -57,59 +59,47 @@ async function loadDispatchOrgs() {
   if (listResult.errors) {
     throw new Error(JSON.stringify(listResult.errors));
   }
-  return (listResult.data?.metaobjects?.nodes ?? [])
-    .map((node) => {
-      const fields = Object.fromEntries(node.fields.map((f) => [f.key, f.value]));
-      return {
-        handle: node.handle,
-        orgName: fields.org_name ?? node.handle,
-        orgCode: fields.org_code ?? '',
-        active: fields.active === 'true',
-      };
-    })
-    .filter((org) => org.orgCode);
+  const nameByOrgCode = {};
+  for (const node of listResult.data?.metaobjects?.nodes ?? []) {
+    const fields = Object.fromEntries(node.fields.map((f) => [f.key, f.value]));
+    if (fields.org_code) {
+      nameByOrgCode[fields.org_code] = fields.org_name ?? fields.org_code;
+    }
+  }
+  return nameByOrgCode;
 }
 
 export default function HomePage() {
   const {year: defaultYear, month: defaultMonth} = useMemo(currentYearMonth, []);
 
-  const [dispatchOrgs, setDispatchOrgs] = useState([]);
-  const [dispatchOrgsError, setDispatchOrgsError] = useState(null);
+  const [orgNames, setOrgNames] = useState({}); // {orgCode: orgName}
 
   const [year, setYear] = useState(defaultYear);
   const [month, setMonth] = useState(defaultMonth);
-  const [orgCode, setOrgCode] = useState('');
   const [royaltyRatePercent, setRoyaltyRatePercent] = useState('1.5');
 
   const [status, setStatus] = useState('idle'); // idle | loading | done | error
   const [errorMessage, setErrorMessage] = useState(null);
-  const [result, setResult] = useState(null); // {orderCount, totalRevenueYen, royaltyAmountYen, currencyCode, orders, truncated}
+  const [result, setResult] = useState(null); // {rows, truncated}
 
   useEffect(() => {
-    loadDispatchOrgs()
-      .then(setDispatchOrgs)
-      .catch((err) => setDispatchOrgsError(String(err?.message ?? err)));
+    loadDispatchOrgNames().then(setOrgNames).catch(() => {
+      // 派遣元名が引けなくても、集計結果はコード表示にフォールバックして出し続ける。
+      // 集計機能自体を止めるほどの失敗ではないため、エラーバナーは出さない。
+    });
   }, []);
 
   async function handleAggregate() {
     setResult(null);
     setErrorMessage(null);
-
-    const trimmedOrgCode = orgCode.trim();
-    if (!isValidOrgCode(trimmedOrgCode)) {
-      setStatus('error');
-      setErrorMessage('組織コードは半角英数字とハイフンのみで入力してください。');
-      return;
-    }
-
     setStatus('loading');
     try {
-      const searchQuery = buildOrdersSearchQuery({orgCode: trimmedOrgCode, year, month});
+      const searchQuery = buildAllOrgsOrdersSearchQuery({year, month});
       const {orders, truncated} = await fetchAllFulfilledOrders(searchQuery, (query, options) =>
         shopify.query(query, options),
       );
-      const aggregated = aggregateOrders(orders, royaltyRatePercent);
-      setResult({...aggregated, orders, truncated});
+      const rows = aggregateOrdersByOrg(orders, royaltyRatePercent);
+      setResult({rows, truncated});
       setStatus('done');
     } catch (err) {
       setStatus('error');
@@ -117,38 +107,21 @@ export default function HomePage() {
     }
   }
 
-  const activeDispatchOrgs = dispatchOrgs.filter((org) => org.active);
+  const monthMayBeOutsideOrderWindow = isMonthOutsideDefaultOrderWindow({year, month});
+  const totalRoyaltyYen = result?.rows.reduce((sum, row) => sum + row.royaltyAmountYen, 0) ?? 0;
 
   return (
-    <s-page heading="ロイヤリティ集計">
+    <s-page heading="Royalty Calculator">
       <s-section heading="集計条件">
-        {dispatchOrgsError && (
+        {monthMayBeOutsideOrderWindow && (
           <s-banner tone="warning">
             <s-paragraph>
-              派遣元マスタの取得に失敗したため、ドロップダウンは使えません（自由入力は利用できます）: {dispatchOrgsError}
+              選択した月は、デフォルトでアクセスできる直近60日の範囲外になっている可能性があります。
+              read_all_ordersスコープが未承認の間は、この月を集計すると結果が0件または不完全になることがあります。
             </s-paragraph>
           </s-banner>
         )}
         <s-stack gap="base">
-          <s-select
-            label="派遣元（マスタ登録済みのみ。無効化済み・未登録の組織は下の直接入力を使う）"
-            placeholder="選択してください"
-            onChange={(e) => setOrgCode(e.currentTarget.value)}
-          >
-            {activeDispatchOrgs.map((org) => (
-              <s-option key={org.handle} value={org.orgCode}>
-                {org.orgName}（{org.orgCode}）
-              </s-option>
-            ))}
-          </s-select>
-
-          <s-text-field
-            label="組織コード（直接入力）"
-            details="顧客・注文タグ org:<コード> の <コード> 部分。マスタ未登録の組織や過去に無効化した組織はこちらに入力する"
-            value={orgCode}
-            onChange={(e) => setOrgCode(e.currentTarget.value)}
-          />
-
           <s-select label="年" value={String(year)} onChange={(e) => setYear(Number(e.currentTarget.value))}>
             {yearOptions(defaultYear).map((y) => (
               <s-option key={y} value={String(y)}>
@@ -190,7 +163,7 @@ export default function HomePage() {
       )}
 
       {status === 'done' && result && (
-        <s-section heading={`集計結果: ${year}年${month}月 / org:${orgCode}`}>
+        <s-section heading={`${year}年${month}月の集計結果`}>
           {result.truncated && (
             <s-banner tone="warning">
               <s-paragraph>
@@ -199,25 +172,29 @@ export default function HomePage() {
             </s-banner>
           )}
 
-          {result.orderCount === 0 ? (
+          {result.rows.length === 0 ? (
             <s-paragraph>対象の発送済み注文は見つかりませんでした。</s-paragraph>
           ) : (
             <>
               <s-paragraph>
-                対象注文数: {result.orderCount}件 / 合計売上: {result.totalRevenueYen.toLocaleString('ja-JP')}円 / ロイヤリティ額:{' '}
-                {result.royaltyAmountYen.toLocaleString('ja-JP')}円（率 {royaltyRatePercent}%）
+                {result.rows.length}件の派遣元 ・ 合計ロイヤリティ額{' '}
+                <s-text type="strong">{totalRoyaltyYen.toLocaleString('ja-JP')}円</s-text>（率 {royaltyRatePercent}%）
               </s-paragraph>
               <s-table>
                 <s-table-header-row>
-                  <s-table-header>注文</s-table-header>
-                  <s-table-header>小計</s-table-header>
+                  <s-table-header>派遣元</s-table-header>
+                  <s-table-header>注文件数</s-table-header>
+                  <s-table-header>合計売上</s-table-header>
+                  <s-table-header>ロイヤリティ額</s-table-header>
                 </s-table-header-row>
                 <s-table-body>
-                  {result.orders.map((o) => (
-                    <s-table-row key={o.id}>
-                      <s-table-cell>{o.name}</s-table-cell>
+                  {result.rows.map((row) => (
+                    <s-table-row key={row.orgCode}>
+                      <s-table-cell>{orgNames[row.orgCode] ?? row.orgCode}</s-table-cell>
+                      <s-table-cell>{row.orderCount}件</s-table-cell>
+                      <s-table-cell>{row.totalRevenueYen.toLocaleString('ja-JP')}円</s-table-cell>
                       <s-table-cell>
-                        {o.currentSubtotalPriceSet?.shopMoney?.amount} {o.currentSubtotalPriceSet?.shopMoney?.currencyCode}
+                        <s-badge tone="success">{row.royaltyAmountYen.toLocaleString('ja-JP')}円</s-badge>
                       </s-table-cell>
                     </s-table-row>
                   ))}
