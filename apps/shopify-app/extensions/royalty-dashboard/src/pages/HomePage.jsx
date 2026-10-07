@@ -214,7 +214,7 @@ export default function HomePage() {
                 <s-text type="strong">{totalRoyaltyYen.toLocaleString('ja-JP')}円</s-text>（率 {royaltyRatePercent}%）
               </s-paragraph>
               <s-stack direction="inline" justifyContent="end">
-                <s-button onClick={handleExportCsv}>CSVダウンロード</s-button>
+                <s-button variant="primary" onClick={handleExportCsv}>CSVダウンロード</s-button>
               </s-stack>
               <s-box paddingBlockStart="base">
                 <s-table>
