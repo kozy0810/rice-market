@@ -112,21 +112,30 @@ export default function HomePage() {
   const monthMayBeOutsideOrderWindow = isMonthOutsideDefaultOrderWindow({year, month});
   const totalRoyaltyYen = result?.rows.reduce((sum, row) => sum + row.royaltyAmountYen, 0) ?? 0;
 
-  // BOM付きUTF-8（Excelで開いたときに日本語が文字化けしないようにするため）。
-  function handleExportCsv() {
-    const csv = rowsToCsv(result.rows, orgNames);
-    const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `royalty-${year}-${String(month).padStart(2, '0')}.csv`;
-    // DOMに接続していない要素へのclick()はブラウザによって無視されることがあるため、
-    // 一時的にbodyへ追加してから操作する。
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
+  // この拡張はサンドボックスのWeb Worker上で動くため、document.createElement('a')で作った
+  // 要素はホスト側の実DOMに繋がらずclick()が機能しない（実DOMに反映されるのは<s-button>等の
+  // 宣言的なコンポーネントのみ）。そこでs-buttonのhref/download属性（Shopifyコンポーネントが
+  // ネイティブに提供するダウンロード機能）を使い、ユーザーのクリックでブラウザ標準の
+  // ダウンロードを発生させる。実行コンテキストに依存しないdata URIを使う
+  // （BOM付きUTF-8はExcelで開いたときに日本語が文字化けしないようにするため）。
+  const downloadHref = useMemo(() => {
+    if (!result) return '';
+    try {
+      const csv = rowsToCsv(result.rows, orgNames);
+      const base64 = btoa(
+        Array.from(new TextEncoder().encode('\ufeff' + csv))
+          .map((byte) => String.fromCharCode(byte))
+          .join(''),
+      );
+      return `data:text/csv;charset=utf-8;base64,${base64}`;
+    } catch {
+      // btoa/TextEncoderがこの実行環境に存在しない場合でも、画面全体を
+      // 白画面にしない（BigIntで経験した致命的な失敗を避けるための防御）。
+      // この場合ダウンロードボタンは無効のまま表示される。
+      return '';
+    }
+  }, [result, orgNames]);
+  const downloadFilename = `royalty-${year}-${String(month).padStart(2, '0')}.csv`;
 
   return (
     <s-page heading="Royalty Calculator">
@@ -214,7 +223,14 @@ export default function HomePage() {
                 <s-text type="strong">{totalRoyaltyYen.toLocaleString('ja-JP')}円</s-text>（率 {royaltyRatePercent}%）
               </s-paragraph>
               <s-stack direction="inline" justifyContent="end">
-                <s-button variant="primary" onClick={handleExportCsv}>CSVダウンロード</s-button>
+                <s-button
+                  variant="primary"
+                  href={downloadHref}
+                  download={downloadFilename}
+                  disabled={!downloadHref}
+                >
+                  CSVダウンロード
+                </s-button>
               </s-stack>
               <s-box paddingBlockStart="base">
                 <s-table>
