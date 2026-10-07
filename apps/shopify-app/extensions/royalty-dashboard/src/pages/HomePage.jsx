@@ -1,5 +1,5 @@
 import {useState, useEffect, useMemo} from 'preact/hooks';
-import {aggregateOrdersByOrg} from '../aggregate.js';
+import {aggregateOrdersByOrg, rowsToCsv} from '../aggregate.js';
 import {buildAllOrgsOrdersSearchQuery, isMonthOutsideDefaultOrderWindow} from '../searchQuery.js';
 import {fetchAllFulfilledOrders, ORDERS_PAGE_SIZE, MAX_ORDER_PAGES} from '../fetchOrders.js';
 
@@ -110,6 +110,18 @@ export default function HomePage() {
   const monthMayBeOutsideOrderWindow = isMonthOutsideDefaultOrderWindow({year, month});
   const totalRoyaltyYen = result?.rows.reduce((sum, row) => sum + row.royaltyAmountYen, 0) ?? 0;
 
+  // BOM付きUTF-8（Excelで開いたときに日本語が文字化けしないようにするため）。
+  function handleExportCsv() {
+    const csv = rowsToCsv(result.rows, orgNames);
+    const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `royalty-${year}-${String(month).padStart(2, '0')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <s-page heading="Royalty Calculator">
       <s-section heading="集計条件">
@@ -180,6 +192,7 @@ export default function HomePage() {
                 {result.rows.length}件の派遣元 ・ 合計ロイヤリティ額{' '}
                 <s-text type="strong">{totalRoyaltyYen.toLocaleString('ja-JP')}円</s-text>（率 {royaltyRatePercent}%）
               </s-paragraph>
+              <s-button onClick={handleExportCsv}>CSVダウンロード</s-button>
               <s-table>
                 <s-table-header-row>
                   <s-table-header>派遣元</s-table-header>

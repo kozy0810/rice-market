@@ -124,3 +124,35 @@ export function aggregateOrdersByOrg(orders, royaltyRatePercent) {
   rows.sort((a, b) => b.royaltyAmountYen - a.royaltyAmountYen || a.orgCode.localeCompare(b.orgCode));
   return rows;
 }
+
+/**
+ * CSVのフィールド1つをエスケープする。カンマ・ダブルクオート・改行を含む場合のみ
+ * ダブルクオートで囲み、内部のダブルクオートは2つに重ねる（RFC 4180準拠）。
+ */
+function escapeCsvField(value) {
+  const str = String(value);
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+/**
+ * aggregateOrdersByOrgの結果をCSV文字列（改行はCRLF）に変換する。
+ * 派遣元名はorgNamesで解決できた場合のみ使い、できなければorgCodeをそのまま出す
+ * （画面表示のフォールバックと同じ挙動）。
+ *
+ * @param {Array<{orgCode: string, orderCount: number, totalRevenueYen: number, royaltyAmountYen: number}>} rows
+ * @param {Record<string, string>} orgNames
+ * @returns {string}
+ */
+export function rowsToCsv(rows, orgNames) {
+  const header = ['派遣元', '組織コード', '注文件数', '合計売上(円)', 'ロイヤリティ額(円)'];
+  const lines = [header.map(escapeCsvField).join(',')];
+  for (const row of rows) {
+    const orgName = orgNames?.[row.orgCode] ?? row.orgCode;
+    lines.push(
+      [orgName, row.orgCode, row.orderCount, row.totalRevenueYen, row.royaltyAmountYen]
+        .map(escapeCsvField)
+        .join(','),
+    );
+  }
+  return lines.join('\r\n');
+}
