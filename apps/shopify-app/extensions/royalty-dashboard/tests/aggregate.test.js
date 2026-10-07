@@ -1,5 +1,5 @@
 import {describe, test, expect} from 'vitest';
-import {aggregateOrders, aggregateOrdersByOrg} from '../src/aggregate.js';
+import {aggregateOrders, aggregateOrdersByOrg, rowsToCsv} from '../src/aggregate.js';
 import ordersEmpty from './fixtures/orders-empty.json';
 import ordersMultiple from './fixtures/orders-multiple.json';
 import ordersDecimalSubtotal from './fixtures/orders-decimal-subtotal.json';
@@ -81,5 +81,40 @@ describe('aggregateOrdersByOrg', () => {
   test('注文配列以外（null/undefined）を渡されても例外を投げない', () => {
     expect(aggregateOrdersByOrg(null, '1.5')).toEqual([]);
     expect(aggregateOrdersByOrg(undefined, '1.5')).toEqual([]);
+  });
+});
+
+describe('rowsToCsv', () => {
+  const rows = [
+    {orgCode: 'sakura', orderCount: 2, totalRevenueYen: 20500, royaltyAmountYen: 308},
+    {orgCode: 'test-agency-b', orderCount: 1, totalRevenueYen: 700, royaltyAmountYen: 11},
+  ];
+
+  test('ヘッダー行と各行をCRLF区切りのCSVにする', () => {
+    const csv = rowsToCsv(rows, {sakura: 'さくら協同組合'});
+    expect(csv.split('\r\n')).toEqual([
+      '派遣元,組織コード,注文件数,合計売上(円),ロイヤリティ額(円)',
+      'さくら協同組合,sakura,2,20500,308',
+      // test-agency-bはorgNamesに無いのでorgCodeがそのまま派遣元列にも出る
+      'test-agency-b,test-agency-b,1,700,11',
+    ]);
+  });
+
+  test('orgNamesが無くてもorgCodeで出力する', () => {
+    const csv = rowsToCsv(rows, {});
+    expect(csv).toContain('sakura,sakura,2,20500,308');
+  });
+
+  test('組織名にカンマ・ダブルクオート・改行を含む場合はダブルクオートで囲みエスケープする', () => {
+    const csv = rowsToCsv(
+      [{orgCode: 'sakura', orderCount: 1, totalRevenueYen: 100, royaltyAmountYen: 1}],
+      {sakura: 'さくら, "協同"組合\n（本店）'},
+    );
+    const dataLine = csv.split('\r\n')[1];
+    expect(dataLine).toBe('"さくら, ""協同""組合\n（本店）",sakura,1,100,1');
+  });
+
+  test('空配列ならヘッダー行のみになる', () => {
+    expect(rowsToCsv([], {})).toBe('派遣元,組織コード,注文件数,合計売上(円),ロイヤリティ額(円)');
   });
 });

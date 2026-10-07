@@ -462,6 +462,208 @@ Opened link to start the auth process: https://accounts.shopify.com/activate-wit
 - ブラウザ操作が可能な環境（または人間）で`.claude/worktrees/rippling-scribbling-honey/apps/shopify-app`から`npx shopify app deploy --allow-updates`を再実行し、表示されるデバイスコードのリンクを開いて認証を完了させる
 - デプロイ完了後、本ファイル3節の5項目をあらためて実機確認する
 
+## CSVエクスポート機能の実機確認（2026-10-08、`feat/royalty-csv-export`）
+
+Issue #44の集計結果にCSVダウンロード機能（`HomePage.jsx`の`handleExportCsv`、`aggregate.js`の`rowsToCsv`）を追加した実装について、`.claude/worktrees/snug-strolling-wind`から`shopify app deploy`での反映を試みた。**デプロイは成功したが、ブラウザでのボタン操作・ダウンロード確認は、このセッションにブラウザ操作手段が与えられていなかったため未検証のまま終わった。**
+
+### 1. デプロイ時に遭遇した2つの環境起因の問題（CSV機能自体の不具合ではない）
+
+**問題A: このworktreeに`node_modules`が一つも存在しなかった。** `pnpm install`を一度も実行していない状態だったため、最初の`shopify app deploy --allow-updates`は以下のエラーで失敗した。
+
+```
+Type reference for customer-account.profile.block.render could not be
+found. You might be using the wrong @shopify/ui-extensions version.
+```
+
+これは`royalty-dashboard`とは無関係な`self-graduation`拡張機能（customer-account UI extension）の型解決エラーで、`node_modules`が存在しないことによる誤解を招くエラーメッセージだった。`pnpm install`を実行して解消した。
+
+**問題B（重要・リポジトリの実バグ）: `extensions/royalty-dashboard/assets/`ディレクトリがgitに一切追跡されていなかった。** `pnpm install`後の再実行で、以下のエラーが出た。
+
+```
+Build step "Include UI Extension Assets" failed: Couldn't find
+extensions/royalty-dashboard/assets
+Please check the path './assets' in your configuration
+```
+
+`shopify.extension.toml`の`assets = "./assets"`は初回実装コミット（`8bbd525c`）から存在するが、`git ls-files`で確認したところ`extensions/royalty-dashboard/assets`配下のファイルは一つも追跡されていない。Gitは空ディレクトリを追跡しないため、過去のセッション（2026-10-02〜2026-10-07）でこのディレクトリが存在したのはローカルの作業ディレクトリに残っていた副産物であり、**fresh cloneやfresh worktreeではこのディレクトリ自体が存在せず、`shopify app deploy`が同じエラーで必ず失敗する。** メインの作業ディレクトリ（`apps/shopify-app`、worktreeではない方）でも確認したところ、同様に`assets`ディレクトリが存在しなかった。
+
+`mkdir -p extensions/royalty-dashboard/assets && touch extensions/royalty-dashboard/assets/.gitkeep`で空ディレクトリをgit管理下に置き、再度デプロイしたところ成功した。
+
+```
+royalty-dashboard │ Included './assets'
+...
+New version released to users.
+royalty-calculator-15
+```
+
+**この`.gitkeep`追加は今回コミットに含めた。** 今後fresh cloneやfresh worktreeで`shopify app deploy`する際に同じ罠に引っかからないようにするための修正。
+
+### 2. デプロイ自体は成功（`royalty-calculator-15`）
+
+直前セッション（2026-10-07）で未解決だったPartner組織ログインは、今回は再要求されず完了した（ユーザー本人のブラウザログインが引き続き有効だった）。`npx shopify app deploy --allow-updates`で`royalty-calculator-15`として正常にリリースされた。
+
+### 3. 間接的な確認: リリースされたバンドルにCSV機能のコードが含まれていること
+
+ブラウザ操作ができないため、ビルド後の`dist/royalty-dashboard.js`（実際にデプロイされたバンドル）をgrepし、CSV機能のコードが削除・バンドル漏れしていないことを確認した。
+
+```
+$ grep -o 'CSV.\{0,30\}' dist/royalty-dashboard.js
+CSVダウンロー   ← 「CSVダウンロード」（unicodeエスケープ）
+
+$ grep -o 'royalty-.\{0,40\}padStart' dist/royalty-dashboard.js
+royalty-${_}-${String(a).padStart   ← ファイル名パターン royalty-<year>-<month>.csv
+
+$ grep -o 'createObjectURL' dist/royalty-dashboard.js
+createObjectURL
+$ grep -o 'revokeObjectURL' dist/royalty-dashboard.js
+revokeObjectURL
+$ grep -o 'FEFF' dist/royalty-dashboard.js
+FEFF   ← BOM（﻿）
+```
+
+**これは「ボタンを押したら実際にファイルがダウンロードされるか」という本来確認すべき事実の代替にはならない。** コードがバンドルに含まれていることだけを示す静的な確認であり、ブラウザのiframe内で`Blob`/`createObjectURL`/`<a>.click()`が実際に動くかどうかは別問題（下記4参照）。
+
+### 4. ユニットテストはこのworktreeでも再現
+
+```
+$ npx vitest run
+ ✓ tests/searchQuery.test.js (9 tests)
+ ✓ tests/fetchOrders.test.js (4 tests)
+ ✓ tests/aggregate.test.js (15 tests)
+ Test Files  3 passed (3)
+      Tests  28 passed (28)
+```
+
+依頼文にあった「28件通過済み」がこのworktreeでも再現することを確認した（`rowsToCsv`のCSVエスケープ・BOM関連のテストを含む）。
+
+### 5. ブラウザでの実機確認は未達（このセッションにブラウザ操作手段がない）
+
+このエージェントのセッションには管理画面を操作するブラウザ/computerツールが与えられておらず、依頼されていた以下はすべて**未検証**のまま。
+
+- 管理画面下部の「開発プレビュー」インジケーターの有無確認・クリーンアップ
+- Royalty Calculator画面を開き、年・月を指定して集計を実行
+- 「CSVダウンロード」ボタンのクリックと、実際にファイルがダウンロードされるか
+- ダウンロードされたファイルの内容（日本語の文字化け、各列の値）
+- ブラウザのコンソールエラーの有無
+
+**「動くはず」という推測は書かない。** 代わりに、次に人間またはブラウザ操作可能なセッションが確認すべき点を以下に残す。
+
+### 6. 次に確認すべきこと（ハンドオフ）
+
+1. ~~まず管理画面下部の「開発プレビュー」インジケーターを確認する~~ → **2026-10-08、`npx shopify app dev clean -s rice-market-dev.myshopify.com`で解消済み。** 「CLIからは確認できない」としていた前回の記述は誤りで、`shopify app dev clean`コマンドが存在し、これを実行すると`Dev preview stopped. ... the app's active version has been restored.`と出力された。**これは実際に開発プレビューが有効なまま残っていたことを意味する**（2026-10-07の`pkill`による強制終了がクリーンに終わっていなかったという前回の懸念が的中していた）。これを実行しなかった場合、次に管理画面でRoyalty Calculatorを開いても`royalty-calculator-18`（今回の修正を含む版）ではなく古いdevプレビューのコード（`document.createElement('a')`を使う旧実装）が表示され、「data URIがブロックされている」という誤った結論に至る恐れがあった。次に確認する人は、この後片付けは完了済みの前提で進めてよい（再度`dev`を起動しない限り`royalty-calculator-18`が表示されるはず）。
+2. Royalty Calculator画面で年・月を指定して集計し、「CSVダウンロード」ボタンを押してファイルが実際に保存されるか確認する。保存されたファイルをテキストエディタ・Excelなどで開き、1行目のBOM起因の文字化けがないか、派遣元名が日本語で正しく表示されるか、列の値が画面表示と一致するかを確認する。
+3. **コードレベルで注目すべき2点**（埋め込みiframe・サンドボックス環境特有の失敗モードになりやすい箇所。確認時にここを疑うとよい）:
+   - `handleExportCsv`は`link.click()`の直後の行で同期的に`URL.revokeObjectURL(url)`を呼んでいる。`click()`によるダウンロード開始が非同期にキューイングされる実装のブラウザでは、同一ティックでの`revokeObjectURL`がダウンロードを打ち切る可能性がある。Shopify公式のcollections拡張サンプルが`revokeObjectURL`を遅延実行（`setTimeout`等）しているかどうかを確認し、していればそれに合わせる。
+   - `link`（`<a>`要素）がDOMに一度も`appendChild`されず、生成されたまま`click()`されている。多くのモダンブラウザはdetached `<a>`でも動作するが、管理画面の埋め込みiframe・サンドボックス属性（`allow-downloads`の有無等）と組み合わさると、ダウンロードが静かに失敗する可能性がある。ブラウザのコンソールに`sandbox`や`allow-downloads`に関する警告が出ていないか確認する。
+
+**（2026-10-08追記）上記2点は、後述の「CSVダウンロードの修正」節で該当コード（`document.createElement('a')`・`revokeObjectURL`・detached `<a>`）自体を全廃したため解消済み。** 次に確認する際はこの2点を追う必要はない。下の新しい節を参照。
+
 ## 判定（2026-10-04時点）: 可。本番運用には#8と`read_all_orders`申請が必要、ただし#8の見通しは好転した可能性がある
 
 Issue #44の3つの完了条件は、いずれもDevストアの実データで実機確認できている。`shopify app deploy`後の再同意フローも実機で動作確認済み。本番運用には引き続き#8（注文への派遣元自動タグ付け）の実装と`read_all_orders`スコープの承認申請が必要だが、#8の候補手段であるShopify Flowが以前より進んだ状態（ワークフロー作成画面まで到達可能）にあることが分かり、見通しが好転した可能性がある。このIssueはクローズしていない。
+
+## CSVダウンロードの修正（`document.createElement('a').click()` → `s-button`の`href`/`download`）の検証（2026-10-08、続報）
+
+前節（2026-10-08、`feat/royalty-csv-export`）で「`shopify app deploy`は成功したが、ブラウザでのクリック・ダウンロード確認は未検証」と記録した件について、`HomePage.jsx`の実装を修正した上で再度検証を試みた。**結論は変わらず：ブラウザでの実際のクリック・ダウンロード確認は、このセッションでも環境起因で完了できなかった。** ただし、今回は次の3点を新たに確認できており、未検証事項の中身は前回より狭まっている。
+
+### 1. 修正内容
+
+`handleExportCsv`（`document.createElement('a')` → `URL.createObjectURL` → `link.click()`という手動DOM操作）を全廃し、`<s-button href={downloadHref} download={downloadFilename}>`に変更した。`downloadHref`は`useMemo`で生成する`data:text/csv;charset=utf-8;base64,...`形式のdata URI（BOM付きUTF-8をBase64化）。`btoa`/`TextEncoder`が実行環境に存在しない場合に備えて`try/catch`で囲み、失敗時は空文字を返して**ボタンを`disabled`にするだけ**に留め、画面全体が白画面になる事態（2026-10-02に`aggregate.js`のBigIntで実際に発生した致命的な失敗モード）を避けるようにした。
+
+```jsx
+const downloadHref = useMemo(() => {
+  if (!result) return '';
+  try {
+    const csv = rowsToCsv(result.rows, orgNames);
+    const base64 = btoa(
+      Array.from(new TextEncoder().encode('﻿' + csv))
+        .map((byte) => String.fromCharCode(byte))
+        .join(''),
+    );
+    return `data:text/csv;charset=utf-8;base64,${base64}`;
+  } catch {
+    return '';
+  }
+}, [result, orgNames]);
+```
+
+```jsx
+<s-button variant="primary" href={downloadHref} download={downloadFilename} disabled={!downloadHref}>
+  CSVダウンロード
+</s-button>
+```
+
+### 2. 公式ドキュメントで「`href`+`download`によるファイルダウンロード」が明文化されたサンクションされたパターンであることを確認
+
+`shopify-polaris-app-home`スキルの`search_docs.mjs`で検索したところ、Admin UI Extension（App Home）の`Link`コンポーネントの公式ドキュメントに、まさに今回と同じ目的のサンプルが掲載されていた。
+
+出典: https://shopify.dev/docs/api/app-home/v1.1/web-components/actions/link
+
+> Trigger a file download: Use the download property to trigger a file download when the link is clicked. This example shows a link that downloads a CSV file for customer data export.
+> ```html
+> <s-paragraph>
+>   Export your customer data for marketing analysis.
+>   <s-link href="javascript:void(0)" download="customer-export.csv">Download customer list</s-link>
+> </s-paragraph>
+> ```
+
+同じドキュメントに次の制約も明記されている。
+
+> The download attribute for forcing file downloads has inconsistent browser support. It works reliably for same-origin files but might be ignored for cross-origin resources. Safari on iOS doesn't support the download attribute at all.
+
+`s-button`は`s-link`と同じ`href`/`download`プロパティを持つ（`Button.d.ts`で`ButtonBaseProps`に`href`/`download`のaccessorが定義されている。実機ではなく型定義・ビルドレベルでの確認）。**「`download`属性でファイルダウンロードをトリガーする」こと自体はShopify公式が例示しているサンクションされたパターンであり、今回の修正の方向性（手動DOM操作の廃止→コンポーネント組み込みの`href`/`download`に寄せる）は公式ドキュメントの推奨と一致する。** ただし、このドキュメントのサンプルは`href="javascript:void(0)"`のダミー値で、`data:`URIを使うケースを明示的に例示したものではない。「same-origin files」という表現が`data:`URIにどう適用されるか（`data:`はブラウザの同一オリジンポリシー上は一般に不透明オリジン＝same-originチェックの対象外として扱われることが多いが、これはShopifyのドキュメントではなく一般的なブラウザ仕様の知識であり、このExtensionのiframe・サンドボックス構成下で実際にそうなるかは未実証）は実機確認できていない。
+
+### 3. `shopify app deploy`でのデプロイと、ビルド後バンドルへの反映を確認
+
+```
+$ npx shopify app deploy --allow-updates
+royalty-dashboard successfully built in 188ms (28.0 KB original, ~10.1 KB compressed)
+royalty-dashboard │ Included './assets'
+New version released to users.
+royalty-calculator-18
+```
+
+認証の再要求はなく（前回セッションの続きでログインセッションが有効なまま）デプロイは成功した。ビルド後の`extensions/royalty-dashboard/dist/royalty-dashboard.js`をgrepし、修正内容が確実にバンドルへ反映されていることを確認した。
+
+```
+$ grep -o 'data:text/csv[^"]*' royalty-dashboard.js | head -c 80
+data:text/csv;charset=utf-8;base64,${btoa(Array.from(new TextEncoder().encode(
+
+$ grep -c 'createObjectURL' royalty-dashboard.js
+0
+$ grep -c 'btoa' royalty-dashboard.js
+1
+```
+
+**`createObjectURL`（旧実装）が完全に消え、`data:text/csv`のdata URI生成コード（新実装）がバンドルに含まれていることを確認した。** これは「バンドルに含まれる」ことの確認であり、前回同様「ボタンを押したら実際にダウンロードされるか」の代替にはならない。
+
+ユニットテストも引き続き全件成功（`searchQuery.test.js` 9件、`fetchOrders.test.js` 4件、`aggregate.test.js` 15件、合計28件）。
+
+### 4. ブラウザでの実機確認は今回も未達——ただし前回とは異なる理由（画面操作ツールではなく、OSレベルの権限不足）
+
+このセッションには管理画面を操作するブラウザ/computerツールが与えられておらず、前回セッション（2026-10-08、デプロイのみ成功）と同じ制約だった。そこで`osascript`経由でユーザーのGoogle Chromeを直接操作する代替ルートを試したが、以下の理由でいずれも実を結ばなかった。
+
+1. **画面収録（Screen Recording）権限がこの実行コンテキストに付与されていない。** `screencapture`はいずれの呼び出しでも`could not create image from display`で失敗した。この実行コンテキストは`com.apple.TCC/TCC.db`の読み取りも`authorization denied`で拒否され、権限状態を確認することも、権限を付与する対話的ダイアログを発生させることもできなかった（画面収録権限はシステム設定での人間によるトグル操作が必要で、スクリプトから有効化できない）。
+2. **Accessibility（System Events）経由でのウィンドウ列挙も機能しなかった。** `tell application "System Events" to tell process "Google Chrome" to get name of every window`は空、`count windows`は`0`を返した。一方`tell application "Google Chrome" to count windows`（Chrome自身のAppleScript辞書）は`1`を返し、`get URL of active tab of window 1`も成功した。つまりChrome自身のスクリプティング辞書は機能するが、System EventsのAXウィンドウ列挙だけが機能しない状態だった。実際、System Events経由で取得できたUI要素はメニューバー1個のみ（`AXMenuBar`）で、ウィンドウの内容やボタンへは到達できなかった。
+3. **AppleScriptからのJavaScript実行（View > デベロッパー > Apple Events からの JavaScript を許可）も有効化できなかった。** メニュー項目自体はSystem Events越しのクリックには応答したが、実行後も`execute javascript`は「オフになっています」エラーを返し続けた。メニュー項目のプロパティを確認すると`enabled:false`（グレーアウト）だった。
+
+これらは「埋め込みiframe・クロスオリジンでfind/get_page_textが効かない」という従来想定していた制約（AGENTS.mdの手順書が前提にしている失敗モード）とは異なり、**OSレベルでこの実行コンテキストにGUI操作・画面収録の権限自体が与えられていない**という、より根本的な制約だった。座標クリックへのフォールバックも、スクリーンショットが取得できない以上座標の特定自体が不可能で機能しなかった。3つの異なるアプローチ（画面収録、Accessibility経由のウィンドウ操作、AppleScript JavaScript実行）がいずれも同じ「この実行コンテキストには対話的GUI権限がない」という壁に当たったため、これ以上の試行を打ち切った。
+
+副作用として開いた`accounts.shopify.com`のログイン確認タブは、Chrome自身のAppleScript辞書（`close active tab`）で後始末した。View menuの「Apple Events からの JavaScript を許可」をクリックした操作も実害のない設定変更で、有効化は確認できていない（グレーアウトしたままだった可能性がある）。
+
+### 5. 次に人間（またはGUI操作可能なセッション）が確認すべきこと
+
+上記の制約により、依頼されていた実機確認（CSVダウンロードの実行、ダウンロードされたファイルの内容、コンソールエラーの有無）は今回も未検証のまま持ち越しになる。次にブラウザ操作ができるセッション、または人間が確認する際は以下を見ればよい（デプロイは`royalty-calculator-18`として既に完了済みなので、再デプロイは不要）。
+
+1. 管理画面でRoyalty Calculator（`royalty-dashboard`）を開き、年月・ロイヤリティ率を指定して集計する。
+2. 「CSVダウンロード」ボタンを押し、実際にファイルがダウンロードされるか確認する。**ここが今回の修正の核心的な未検証ポイント。** 公式ドキュメントが`download`属性によるファイルダウンロードを例示パターンとして明記している（4節参照）ため動く可能性は高いと見ているが、「可能性が高い」は推論であり事実ではない。特に次の2点を疑う：
+   - data URI（`javascript:void(0)`のダミー値ではない実際の`data:`スキーム）に対してこの環境の`download`属性が効くか。
+   - このExtensionのホストiframeのサンドボックス属性（`allow-downloads`等）がトップレベルナビゲーション/ダウンロードをブロックしていないか（DevTools Elementsタブでの確認が必要。ドキュメント・バンドル内容からは判定できない）。
+   - **ボタンがグレーアウト（disabled）して見える場合、それはCSPやサンドボックスの問題ではない可能性が高い。** 今回の実装は集計結果が無い、または`btoa`/`TextEncoder`が例外を投げた場合に`downloadHref`が空文字になり、`disabled={!downloadHref}`でボタンを無効化するようにしている（真っ白画面よりはましという判断）。まずこの分岐（コンソールで`downloadHref`の値、または`result`の有無）を疑ってから、CSP・サンドボックスの疑いに進むこと。
+3. **クリックしてもダウンロードが発生しない場合、バックエンドが必要と判断する前に、まず`s-button`を公式ドキュメントが実際に例示している`s-link`に差し替えて同じ`href`/`download`で試す（1行の変更で済む簡易テスト）。** 今回確認できた公式ドキュメント（4節）がダウンロード例に使っているのは`s-link`であり、`s-button`の`href`/`download`は`Button.d.ts`の型定義レベルでの確認にとどまっている。`s-link`でも発生しなければ「コンポーネントが`download`を正しく配線していない」可能性は消え、iframeの`allow-downloads`サンドボックス属性の不在（DevTools Elementsで確認）を本命の原因として扱ってよい。
+4. ダウンロードされたファイル名が`royalty-{year}-{month}.csv`になっているか、BOM付きUTF-8で日本語（派遣元名）が文字化けしないか、内容が画面表示と一致するかを確認する。
+5. ダウンロードが発生せず、かつ`s-link`に差し替えても発生しない場合は、コンソールのエラー（CSP違反、Navigation関連）とDevTools NetworkタブでのリクエストIDを確認し、`allow-downloads`サンドボックス属性の有無を疑う。その場合は代替実装（アプリバックエンドからCSVを返すエンドポイントを用意する等）の検討材料にする。
+
+### 6. デプロイ済みバンドルとgit管理下のソースが一致していない（引き継ぎ時の注意）
+
+`royalty-calculator-18`としてデプロイした内容（本節1の`try/catch`・`disabled`を含む修正）は、**`apps/shopify-app/extensions/royalty-dashboard/src/pages/HomePage.jsx`の未コミット・未ステージの変更**（このworktree `.claude/worktrees/snug-strolling-wind` のワーキングディレクトリにのみ存在）に基づいている。コミットは依頼されていないため今回はコミットしていない。**このworktreeが削除・リセットされると、デプロイ済みバンドルに対応するソースが失われる。** 次に作業する人は、コミットするかどうかをユーザーに確認してから進めること。
