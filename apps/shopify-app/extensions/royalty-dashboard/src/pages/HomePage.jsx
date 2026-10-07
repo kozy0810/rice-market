@@ -118,7 +118,11 @@ export default function HomePage() {
     const link = document.createElement('a');
     link.href = url;
     link.download = `royalty-${year}-${String(month).padStart(2, '0')}.csv`;
+    // DOMに接続していない要素へのclick()はブラウザによって無視されることがあるため、
+    // 一時的にbodyへ追加してから操作する。
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }
 
