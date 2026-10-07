@@ -81,6 +81,7 @@ export default function HomePage() {
   const [status, setStatus] = useState('idle'); // idle | loading | done | error
   const [errorMessage, setErrorMessage] = useState(null);
   const [result, setResult] = useState(null); // {rows, truncated}
+  const [conditionsExpanded, setConditionsExpanded] = useState(true);
 
   useEffect(() => {
     loadDispatchOrgNames().then(setOrgNames).catch(() => {
@@ -90,6 +91,7 @@ export default function HomePage() {
   }, []);
 
   async function handleAggregate() {
+    setConditionsExpanded(false);
     setResult(null);
     setErrorMessage(null);
     setStatus('loading');
@@ -129,45 +131,60 @@ export default function HomePage() {
   return (
     <s-page heading="Royalty Calculator">
       <s-section heading="集計条件">
-        {monthMayBeOutsideOrderWindow && (
-          <s-banner tone="warning">
-            <s-paragraph>
-              選択した月は、デフォルトでアクセスできる直近60日の範囲外になっている可能性があります。
-              read_all_ordersスコープが未承認の間は、この月を集計すると結果が0件または不完全になることがあります。
-            </s-paragraph>
-          </s-banner>
+        {conditionsExpanded ? (
+          <>
+            {monthMayBeOutsideOrderWindow && (
+              <s-banner tone="warning">
+                <s-paragraph>
+                  選択した月は、デフォルトでアクセスできる直近60日の範囲外になっている可能性があります。
+                  read_all_ordersスコープが未承認の間は、この月を集計すると結果が0件または不完全になることがあります。
+                </s-paragraph>
+              </s-banner>
+            )}
+            <s-stack gap="base">
+              <s-select label="年" value={String(year)} onChange={(e) => setYear(Number(e.currentTarget.value))}>
+                {yearOptions(defaultYear).map((y) => (
+                  <s-option key={y} value={String(y)}>
+                    {y}年
+                  </s-option>
+                ))}
+              </s-select>
+
+              <s-select label="月" value={String(month)} onChange={(e) => setMonth(Number(e.currentTarget.value))}>
+                {MONTH_OPTIONS.map((m) => (
+                  <s-option key={m} value={String(m)}>
+                    {m}月
+                  </s-option>
+                ))}
+              </s-select>
+
+              <s-number-field
+                label="ロイヤリティ率（%）"
+                details="例: 1.5 と入力すると 1.5% として計算します"
+                suffix="%"
+                step="0.01"
+                min="0"
+                value={royaltyRatePercent}
+                onChange={(e) => setRoyaltyRatePercent(e.currentTarget.value)}
+              />
+
+              <s-button variant="primary" onClick={handleAggregate} disabled={status === 'loading'}>
+                {status === 'loading' ? '集計中...' : '集計する'}
+              </s-button>
+            </s-stack>
+          </>
+        ) : (
+          <s-stack direction="inline" justifyContent="space-between" alignItems="center">
+            <s-text>
+              {status === 'loading'
+                ? '集計中...'
+                : `${year}年${month}月 ・ ロイヤリティ率${royaltyRatePercent}%`}
+            </s-text>
+            <s-button variant="tertiary" onClick={() => setConditionsExpanded(true)}>
+              条件を変更
+            </s-button>
+          </s-stack>
         )}
-        <s-stack gap="base">
-          <s-select label="年" value={String(year)} onChange={(e) => setYear(Number(e.currentTarget.value))}>
-            {yearOptions(defaultYear).map((y) => (
-              <s-option key={y} value={String(y)}>
-                {y}年
-              </s-option>
-            ))}
-          </s-select>
-
-          <s-select label="月" value={String(month)} onChange={(e) => setMonth(Number(e.currentTarget.value))}>
-            {MONTH_OPTIONS.map((m) => (
-              <s-option key={m} value={String(m)}>
-                {m}月
-              </s-option>
-            ))}
-          </s-select>
-
-          <s-number-field
-            label="ロイヤリティ率（%）"
-            details="例: 1.5 と入力すると 1.5% として計算します"
-            suffix="%"
-            step="0.01"
-            min="0"
-            value={royaltyRatePercent}
-            onChange={(e) => setRoyaltyRatePercent(e.currentTarget.value)}
-          />
-
-          <s-button variant="primary" onClick={handleAggregate} disabled={status === 'loading'}>
-            {status === 'loading' ? '集計中...' : '集計する'}
-          </s-button>
-        </s-stack>
       </s-section>
 
       {status === 'error' && (
@@ -196,27 +213,31 @@ export default function HomePage() {
                 {result.rows.length}件の派遣元 ・ 合計ロイヤリティ額{' '}
                 <s-text type="strong">{totalRoyaltyYen.toLocaleString('ja-JP')}円</s-text>（率 {royaltyRatePercent}%）
               </s-paragraph>
-              <s-button onClick={handleExportCsv}>CSVダウンロード</s-button>
-              <s-table>
-                <s-table-header-row>
-                  <s-table-header>派遣元</s-table-header>
-                  <s-table-header>注文件数</s-table-header>
-                  <s-table-header>合計売上</s-table-header>
-                  <s-table-header>ロイヤリティ額</s-table-header>
-                </s-table-header-row>
-                <s-table-body>
-                  {result.rows.map((row) => (
-                    <s-table-row key={row.orgCode}>
-                      <s-table-cell>{orgNames[row.orgCode] ?? row.orgCode}</s-table-cell>
-                      <s-table-cell>{row.orderCount}件</s-table-cell>
-                      <s-table-cell>{row.totalRevenueYen.toLocaleString('ja-JP')}円</s-table-cell>
-                      <s-table-cell>
-                        <s-badge tone="success">{row.royaltyAmountYen.toLocaleString('ja-JP')}円</s-badge>
-                      </s-table-cell>
-                    </s-table-row>
-                  ))}
-                </s-table-body>
-              </s-table>
+              <s-stack direction="inline" justifyContent="end">
+                <s-button onClick={handleExportCsv}>CSVダウンロード</s-button>
+              </s-stack>
+              <s-box paddingBlockStart="base">
+                <s-table>
+                  <s-table-header-row>
+                    <s-table-header>派遣元</s-table-header>
+                    <s-table-header>注文件数</s-table-header>
+                    <s-table-header>合計売上</s-table-header>
+                    <s-table-header>ロイヤリティ額</s-table-header>
+                  </s-table-header-row>
+                  <s-table-body>
+                    {result.rows.map((row) => (
+                      <s-table-row key={row.orgCode}>
+                        <s-table-cell>{orgNames[row.orgCode] ?? row.orgCode}</s-table-cell>
+                        <s-table-cell>{row.orderCount}件</s-table-cell>
+                        <s-table-cell>{row.totalRevenueYen.toLocaleString('ja-JP')}円</s-table-cell>
+                        <s-table-cell>
+                          <s-badge tone="success">{row.royaltyAmountYen.toLocaleString('ja-JP')}円</s-badge>
+                        </s-table-cell>
+                      </s-table-row>
+                    ))}
+                  </s-table-body>
+                </s-table>
+              </s-box>
             </>
           )}
         </s-section>
