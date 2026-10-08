@@ -2468,6 +2468,8 @@ input[type='checkbox'] {
 .header__heading-logo {
   height: auto;
   max-width: 100%;
+  transform: scale(1.25);
+  transform-origin: left center;
 }
 
 .header__heading-logo-wrapper {
