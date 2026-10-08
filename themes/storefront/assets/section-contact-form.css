@@ -10,12 +10,14 @@
   margin-top: 0.2rem;
 }
 
-.contact .field {
+.contact .field,
+.contact__agreement {
   margin-bottom: 1.5rem;
 }
 
 @media screen and (min-width: 750px) {
-  .contact .field {
+  .contact .field,
+  .contact__agreement {
     margin-bottom: 2rem;
   }
 }

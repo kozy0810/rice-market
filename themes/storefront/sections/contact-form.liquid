@@ -35,6 +35,13 @@
           {{- 'icon-success.svg' | inline_asset_content -}}
           {{ 'templates.contact.form.post_success' | t }}
         </h2>
+        <script>
+          // 送信後のURLがそのままだと、リロードしてもこの成功メッセージが表示され続けるため、
+          // 一度表示したら履歴をクエリ・ハッシュ無しのURLに置き換えてリロード時の再表示を防ぐ。
+          if (window.history.replaceState) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        </script>
       {%- endif -%}
       <input type="hidden" name="contact[{{ 'templates.contact.form.name' | t }}]" value="{{ customer.name }}">
       <input type="hidden" name="contact[email]" value="{{ customer.email }}">
@@ -45,7 +52,8 @@
           class="field__input"
           autocomplete="tel"
           name="contact[{{ 'templates.contact.form.phone' | t }}]"
-          pattern="[0-9\-]*"
+          pattern="[0-9]{2,4}-?[0-9]{2,4}-?[0-9]{3,4}"
+          maxlength="13"
           value="{% if form.phone %}{{ form.phone }}{% elsif customer %}{{ customer.phone }}{% endif %}"
           placeholder="{{ 'templates.contact.form.phone' | t }}"
         >
@@ -66,6 +74,12 @@
         <label class="form__label field__label" for="ContactForm-body">
           {{- 'templates.contact.form.comment' | t -}}
           <span aria-hidden="true">*</span>
+        </label>
+      </div>
+      <div class="contact__agreement">
+        <label for="ContactForm-agreement">
+          <input type="checkbox" id="ContactForm-agreement" name="contact[{{ 'templates.contact.form.agreement' | t }}]" value="{{ 'templates.contact.form.agreement' | t }}" required>
+          {{ 'templates.contact.form.agreement' | t }}
         </label>
       </div>
       <div class="contact__button">

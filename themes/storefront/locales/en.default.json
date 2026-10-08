@@ -256,6 +256,7 @@
         "email": "Email",
         "phone": "Phone number",
         "comment": "Comment",
+        "agreement": "I agree to the site terms and submit this form.",
         "send": "Send",
         "post_success": "Thanks for contacting us. We'll get back to you as soon as possible.",
         "error_heading": "Please adjust the following:"
