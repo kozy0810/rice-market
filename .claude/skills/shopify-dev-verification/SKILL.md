@@ -29,6 +29,8 @@ description: rice-marketプロジェクトのShopify（Devストア・カスタ�
 - **`shopify store execute`（`shopify store auth`のCLIセッション）からは、他アプリ（例: `rice-market-app`）が所有するメタオブジェクトが見えない。** `read_metaobjects`スコープを付与しても`metaobjectDefinitions`/`metaobjects`クエリが空で返る。実機確認は管理画面UI（コンテンツ > メタオブジェクト）で行うこと
 - **`apps/shopify-app/`のようにローカルの`.shopify/`を含めずGit管理すると、`shopify app info`が「Dev store: Not yet configured」になる。** `shopify app dev --store <ストア>`を一度実行すれば紐付く（インストールされていなければ同時にインストールもされる）
 - **Shopify FlowのLiquidコードエディタ（例: 「Update customer metafield」のValue欄）は`{%`や`{{`の入力でスニペット自動補完ポップアップが開く。** ブラウザ自動操作で長いLiquid文字列を一度に`type`すると、途中のスペースキーがポップアップの確定操作として誤認識され、無関係なテンプレート片（`{% assign variable_name = value %}`等）が挿入されて壊れる。対処: `{%`/`{{`を打つたびに`Escape`でポップアップを閉じてから続きを入力し、`End`キーで自動補完された閉じ括弧の後ろへ移動してから次のタグを追記する（詳細は`docs/research/self-service-status-change.md`の追補参照）
+- **`shopify app deploy`は、デプロイを実行した作業ツリーに存在する拡張機能だけでアクティブバージョンを丸ごと置き換える。** 複数のセッション・ブランチ・worktreeが同じカスタムアプリ（`apps/shopify-app/`）を並行して触っていると、片方のデプロイがもう片方の拡張機能（self-graduationが丸ごと消えた実例あり）を黙って消す。デプロイ前に`shopify app info`でローカルツリーの拡張機能一覧を確認し、Dev Dashboard（`dev.shopify.com/dashboard/<組織ID>/apps/<アプリID>/versions`）でアクティブバージョンの内容と突き合わせること。経緯は`docs/specs/self-service-status-change.md`の「訂正（2026-10-08）」節を参照
+- **Customer Account UI Extensionは`shopify app deploy`でバージョンに含めるだけでは画面に現れない。** テーマのApp Blockと同様、設定 > チェックアウト > 編集 で開く「お客様アカウント」カスタマイズエディタで、対象ページ（例: プロフィール）に明示的にブロックとして追加・保存する必要がある。「アクティブバージョンに拡張が含まれているか」と「ページにブロックとして配置されているか」は別の確認ポイント
 
 ## 記録のフォーマット
 

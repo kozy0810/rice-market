@@ -11,4 +11,3 @@ uid = "1e45028f-b81d-db1d-1e0b-bce80fa67a0ae6b6081e"
 [[extensions.targeting]]
 module = "./src/AppHome.jsx"
 target = "admin.app.home.render"
-assets = "./assets"
