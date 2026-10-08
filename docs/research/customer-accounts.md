@@ -93,9 +93,14 @@ Legacy では、テーマが `customers/register` / `customers/login` / `custome
 | 登録を招待制・承認制にする | テーマ側で作り込み可能だった | 不可。該当する管理画面設定が存在しない（下記「セルフサービスのサインインだけでは購入者を限定できない」で実機確認済み） | — |
 | サインイン・登録フローへのアプリ拡張 | 非対応 | 非対応。Customer Account UI Extensionsのtarget一覧に sign-in/registration 系は存在しない（Order index・Order status・Profile・新規ページのみ） | — |
 | 配色・フォント・角丸・背景画像・favicon | テーマのCSS | 可能 | Checkout and Accounts Configuration API（Admin GraphQL） |
-| ヘッダーのアカウントアイコンの見た目 | テーマ側で自由 | 限定的。スロットとCSSカスタムプロパティのみ、構造は不変 | `<shopify-account>` コンポーネント |
+| ヘッダーのアカウントアイコンの見た目（ストアフロント側） | テーマ側で自由 | 限定的。スロットとCSSカスタムプロパティのみ、構造は不変 | `<shopify-account>` コンポーネント |
 | 注文一覧・注文詳細・プロフィールページへの要素追加 | 不可 | 可能 | Customer Account UI Extensions（`render-after`, `block.render`, `announcement.render` 等） |
 | 全く新しいページの追加（ウィッシュリスト等） | 不可 | 可能 | Full-page extension（`customer-account.page.render`） |
+| ロゴのサイズ | テーマのCSS | 可能（px指定） | カスタマイズエディタの「設定 > ロゴ > 幅」。rice-marketではストアフロント側の実効表示サイズ（`logo_width: 110px` × `transform: scale(1.25)` ≈ 137.5px）に合わせて138pxに設定した |
+| リンク・ボタンの文字色 | テーマのCSS | 可能 | カスタマイズエディタの「設定 > アクセント」（ロゴ横のリンク・カートアイコン用）と「注文サマリー > アクセントとボタン > アクセント/ボタン」。rice-marketではストアフロントの`scheme-1`と同じ`#121212`に統一した |
+| フッターの国・地域選択リンクの非表示 | — | 条件付き。マーケットが1つだけなら自動的に非表示になる。複数マーケット（例: Japan + Canada）があると強制的に表示され、個別に隠す設定は存在しない | 設定 > マーケット でマーケット自体を削除・統合する |
+| Profileページ内「マーケティング設定」ブロックの非表示 | — | 不可。公式ヘルプセンター・開発者ドキュメントのいずれにも非表示化の手段が記載されておらず、カスタマイズエディタのブロック一覧（メイン: self-graduation/お客様連絡先/住所等）にも含まれていない。プラットフォームネイティブな固定ブロックと判断（2026-10-08確認、`shopify-dev`スキルでの公式ドキュメント検索でも同様の結論）。Customer Account UI Extensionsのtargets一覧（`profile.block.render`等）は要素の**追加**のみで、既存ネイティブセクションの削除・非表示に対応するtargetは存在しない | — |
+| アカウントページ右上のアカウントアイコン（Customer Accounts側のchrome） | — | 不可。ストアフロント側の`<shopify-account>`とは別物で、アカウントページ自体のヘッダーに常時表示されるプラットフォーム固定要素。非表示化の手段は確認できなかった（2026-10-08確認） | — |
 
 ### 会員登録フロー
 
