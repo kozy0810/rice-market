@@ -48,7 +48,7 @@ read_translations, write_translations
 | [signup-url-handle.md](./research/signup-url-handle.md) | 会員登録ページのURLハンドル推測困難化、handleへのスラッシュ不可、sitemap自動掲載とseo.hiddenメタフィールドによる除外 |
 | [self-service-status-change.md](./research/self-service-status-change.md) | 顧客自身によるタグ変更は技術的に不可能なこと、顧客によるメタフィールド書き込みは公式サポートされていること、卒業は所属組織からの削除の自己申告であり購入可否には影響しないこと。実装・実機検証済み（Issue #45、仕様は`docs/specs/self-service-status-change.md`）。組織名の自動同期（`Customer tags added`トリガー + Shopify Flow）も追加実装・実機検証済み（2026-10-06） |
 | [unpaid-order-auto-cancel.md](./research/unpaid-order-auto-cancel.md) | 未入金注文の自動キャンセル（日数指定）はShopify管理画面にネイティブ設定が存在しないこと。チェックアウト設定・一般設定（注文処理）・手動決済方法の3箇所を実機確認済み。Flow依存のため#8と同じ制約でDevストアでは検証不可（Issue #46） |
-| [contact-form.md](./research/contact-form.md) | Dawn標準の`contact-form`セクション検証（Issue #65）。実装・公開・ナビゲーション導線は確認済み。実際の送信成功表示と必須項目未入力時のエラー表示は、Shopify標準のhCaptcha保護（contact/customer/blogフォーム共通、[shopify.dev参照](https://shopify.dev/docs/storefronts/themes/trust-security/captcha)）がCDP自動操作ブラウザを通過させないため未実証。メール形式不正時はブラウザのネイティブバリデーションで止まり`error_heading`は表示されないことを実機確認。通知先メールアドレスは`shop.contactEmail`で特定したが管理画面での目視確認・実着信は未実証 |
+| [contact-form.md](./research/contact-form.md) | Dawn標準の`contact-form`セクション検証（Issue #65）。実装・公開・ナビゲーション導線は確認済み。フォーム自体に不具合は見つからず、未実証の項目はすべてShopify標準のhCaptcha保護（contact/customer/blogフォーム共通、[shopify.dev参照](https://shopify.dev/docs/storefronts/themes/trust-security/captcha)）がCDP自動操作ブラウザを通過させないという検証手法上の制約。メール形式不正時はブラウザのネイティブバリデーションで止まり`error_heading`は表示されないことを実機確認。通知先は管理画面「設定>通知」の「差出人メールアドレス」であることを[Shopifyヘルプセンター](https://help.shopify.com/manual/online-store/themes/customizing-themes/add-contact-page#view-contact-form-submissions)で確認済み（値は`shop.contactEmail`と推測されるが管理画面での直接確認・実着信は未実証） |
 
 ## 可否判定のまとめ
 
