@@ -49,6 +49,7 @@ read_translations, write_translations
 | [self-service-status-change.md](./research/self-service-status-change.md) | 顧客自身によるタグ変更は技術的に不可能なこと、顧客によるメタフィールド書き込みは公式サポートされていること、卒業は所属組織からの削除の自己申告であり購入可否には影響しないこと。実装・実機検証済み（Issue #45、仕様は`docs/specs/self-service-status-change.md`）。組織名の自動同期（`Customer tags added`トリガー + Shopify Flow）も追加実装・実機検証済み（2026-10-06） |
 | [unpaid-order-auto-cancel.md](./research/unpaid-order-auto-cancel.md) | 未入金注文の自動キャンセル（日数指定）はShopify管理画面にネイティブ設定が存在しないこと。チェックアウト設定・一般設定（注文処理）・手動決済方法の3箇所を実機確認済み。Flow依存のため#8と同じ制約でDevストアでは検証不可（Issue #46） |
 | [contact-form.md](./research/contact-form.md) | Dawn標準の`contact-form`セクション検証（Issue #65）。実装・公開・ナビゲーション導線は確認済み。フォーム自体に不具合は見つからず、未実証の項目はすべてShopify標準のhCaptcha保護（contact/customer/blogフォーム共通、[shopify.dev参照](https://shopify.dev/docs/storefronts/themes/trust-security/captcha)）がCDP自動操作ブラウザを通過させないという検証手法上の制約。メール形式不正時はブラウザのネイティブバリデーションで止まり`error_heading`は表示されないことを実機確認。通知先は管理画面「設定>通知」の「差出人メールアドレス」であることを[Shopifyヘルプセンター](https://help.shopify.com/manual/online-store/themes/customizing-themes/add-contact-page#view-contact-form-submissions)で確認済み（値は`shop.contactEmail`と推測されるが管理画面での直接確認・実着信は未実証） |
+| [shipping-label-apps.md](./research/shipping-label-apps.md) | 配送ラベル・伝票番号の自動発行はShopify標準（Shopify Shipping）が日本非対応のためアプリが必要なこと。伝票番号を注文に記録して通知するだけならアプリ不要だが、番号自体の自動取得にはアプリが前提。プラスシッピングを実機インストール済み（2026-10-09）：配送業者との個別契約書は不要だが「申し込むだけで即日契約完了」は誤りで、新規事業者は電話連絡＋発送元住所への訪問調整を経て翌営業日以降にサブスクリプション有効化。申込みフォームは実在の住所・氏名・電話番号が必須で配送業者に連携されるためダミー送信不可。送り状発行の課金額・課金先決済方法は申込み完了後でないと確認できず未実証のまま |
 
 ## 可否判定のまとめ
 
