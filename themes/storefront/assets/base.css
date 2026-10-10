@@ -2401,7 +2401,7 @@ input[type='checkbox'] {
   .header--middle-left {
     grid-template-areas: 'heading navigation icons';
     grid-template-columns: auto auto 1fr;
-    column-gap: 2rem;
+    column-gap: 3.5rem;
   }
 
   .header--middle-center:not(.drawer-menu) {
@@ -2468,6 +2468,8 @@ input[type='checkbox'] {
 .header__heading-logo {
   height: auto;
   max-width: 100%;
+  transform: scale(1.25);
+  transform-origin: left center;
 }
 
 .header__heading-logo-wrapper {

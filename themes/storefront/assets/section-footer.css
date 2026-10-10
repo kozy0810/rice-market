@@ -469,6 +469,11 @@
 .policies li a {
   padding: 0.6rem 0;
   display: block;
+  color: #6a6a6a;
+}
+
+.policies li a:hover {
+  color: rgb(var(--color-foreground));
 }
 
 @media screen and (min-width: 750px) {
