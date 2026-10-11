@@ -158,16 +158,48 @@ Flow①の構築中、以下の手順までは正常に進んだ。
 
 - ストアの表示名が検証中に `rice-market-dev` から `dev-rice-rakuraku-delivery` に変化していることに気づいた。ただしドメイン（`rice-market-dev.myshopify.com`）・ビジネスエンティティ（`rice-market-dev - entity`、作成日2026年9月20日）は変化しておらず、**同一ストアであることは設定 > 一般で確認済み**。表示名変更の経緯は本セッションでは不明（検証中にユーザー側で変更した可能性がある）。今後このストアを `dev-rice-rakuraku-delivery` という名称で見かけても、`rice-market-dev` と同じストアである
 
-## Issue #71 の完了条件に対する結論（2026-10-10時点）
+## Flow②での追加の落とし穴: 「Release fulfillment order holds」は単体のFulfillmentOrderを要求する（2026-10-11）
+
+Flow②を手動で組んだところ、`Release fulfillment order holds`アクションの Fulfillment order 欄で以下のエラーが出た。
+
+```
+FulfillmentOrder が必要です
+トリガーまたは前のステップから取得できる FulfillmentOrder がありません。FulfillmentOrder を取得するには、以下の操作を行ってください。
+・FulfillmentOrder を含むトリガーに変更する
+・「For each」ステップを使用して、FulfillmentOrder オブジェクトのリストをループ処理する
+・「Run code」ステップを使用して FulfillmentOrder を定義する
+```
+
+**原因**: `Order paid`トリガーが渡すのは注文（`order`）であり、`order.fulfillmentOrders`は**リスト**（複数件になりうる）。`Release fulfillment order holds`は単体のFulfillmentOrder（1件）を要求するアクションのため、リストをそのまま渡すと型エラーになる。
+
+**解決策**: `Release fulfillment order holds`の手前に「For each」ステップを追加し、対象リストに `order.fulfillmentOrders` を指定。`Release fulfillment order holds`をそのループの中に移動し、Fulfillment order欄にはループ変数（現在のアイテム）の `id` を選ぶ。`Remove order tags`・`Add order tags`は注文自体への操作なのでループの外のままでよい。これにより複数のFulfillment Order（分割発送等）がある注文でも、全てのFulfillment Orderに対してRelease処理が行われる設計になる。
+
+同様の制約はFlow①の`Hold fulfillment order`にも当てはまる可能性があるが、こちらはエラーなく設定できたとの報告だったため、`Order created`トリガー側では単体のFulfillmentOrderが直接取得できる（作成直後は1件しかない前提のため）か、あるいはすでに同様の対応がされているものと推測される（未確認）。
+
+## Issue #71 の完了条件に対する結論（2026-10-11、実機確認完了）
+
+ユーザーがFlow①・Flow②を手動で組み、実際の注文データで動作を確認した。
+
+| 注文 | 決済方法 | 決済ステータス | タグ | Fulfillment Order状態 |
+|---|---|---|---|---|
+| #1016, #1017 | 銀行振込（`Bank Deposit`） | PENDING | `入金待ち` | `ON_HOLD`（reason: `AWAITING_PAYMENT`） |
+| #1018 | KOMOJU（`KOMOJU - コンビニ決済 (Convenience Store)`） | PAID | `発送可` | `OPEN`（保留なし） |
+| #1006, #1014 | 代引き（`Cash on Delivery (COD)`） | PAID/PENDING | タグなし | `OPEN`（保留なし） |
+
+（`shopify store execute`でAdmin GraphQLから直接取得、2026-10-11）
 
 | 完了条件 | 状態 |
 |---|---|
-| コンビニ決済・銀行振込の注文作成時に、自動で発送保留とタグ`入金待ち`が付与されることをDevストアで確認 | **未確認**。Flow①が未完成（条件の値未設定、Hold/タグ付けアクション未追加）のため検証できていない |
-| 入金確定時に、発送保留が解除されタグが`入金待ち`→`発送可`に切り替わることをDevストアで確認 | **未確認**。Flow②は未着手 |
-| 代引き・クレジットカードの注文は保留がかからず最初から発送可能な状態であることを確認 | **未確認**。[cod-payment.md](../research/cod-payment.md)でAPIレベルの類似事実（PENDINGでも発送ブロックされない）は確認済みだが、これは今回作ろうとしたFlow自体の検証ではない点に注意。Flow①が存在しない以上、「Flow①の対象外になっている」ことそのものは確認できていない |
+| コンビニ決済・銀行振込の注文作成時に、自動で発送保留とタグ`入金待ち`が付与されることをDevストアで確認 | **確認できた**。#1016・#1017（銀行振込、PENDING）が`入金待ち`タグ・`AWAITING_PAYMENT`理由のHoldともに付与されている |
+| 入金確定時に、発送保留が解除されタグが`入金待ち`→`発送可`に切り替わることをDevストアで確認 | **確認できた**。#1018（KOMOJU、PAID）はタグが`発送可`、Holdが解除され`OPEN`状態 |
+| 代引き・クレジットカードの注文は保留がかからず最初から発送可能な状態であることを確認 | **確認できた**。#1006・#1014（代引き）はタグなし・`OPEN`状態。ただしこの2件はFlow有効化前に作成された注文のため、「Flow①の条件に一致せず除外される」ことの直接証拠というより、Flow①の条件（KOMOJU・Bank Depositの2値のみ）の設計上代引きが対象外であることによる論理的な裏付け |
+
+**Issue #71はクローズ可能。** 残課題（代引きでの`Order paid`発火確認、分割発送時の複数FulfillmentOrderでの動作）は「今後の検討事項」に残す。
 
 ## 今後の検討事項
 
 - クレジットカード（Shopify Payments）を導入する場合、決済ゲートウェイ名を正確に把握してFlow①の対象外に含める必要がある
 - 決済方法が今後増えた場合（他のAPMアプリ追加等）、Flow①の条件に追加するメンテナンスが必要になる。決済方法の追加・変更時はこのドキュメントとFlowの条件を両方更新すること
-- **次にこの作業を再開する際の推奨手順**: (1) まず銀行振込のテスト注文を1件作成し`paymentGatewayNames`を確定させる、(2) Flow①を人間が手動でブラウザ操作して最後まで組む（本検証で判明した通り、この種のFlow編集画面でのテキスト入力・ノードの再クリックはAIエージェントのブラウザ自動操作では機能しない可能性が高いため、無理に自動化を試みるより人手での作業を優先する）、(3) Flow②も同様に人手で組む、(4) KOMOJU管理画面の認証情報をユーザーから共有してもらうか、ユーザー自身にSimulate Captureを実行してもらい、結果をAIエージェントに伝えてもらう形で動作確認を進める
+- 代引きの「支払い済みとしてマーク」操作（`orderCreateManualPayment`等）で`Order paid`トリガーが実際に発火するかは未確認。発火してもFlow②の条件（タグに`入金待ち`を含む）で代引きは弾かれるため実害はない想定だが、念のため確認しておくとよい
+- 分割発送等で1注文に複数のFulfillment Orderが存在するケースでの動作は未確認。Flow②は`For each`で全Fulfillment Orderをループする設計にしたため、理論上は複数件でも正しく動くはずだが実機では未検証
+- Flowの編集画面（埋め込みiframe）はブラウザ自動操作（CDP）との相性が悪く、テキスト入力やノードのクリックが安定しないことが2回の検証で分かった。今後Flowの画面操作が必要な作業は、自動化を試みるより先に人手での対応を優先する
