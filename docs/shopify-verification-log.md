@@ -1,6 +1,6 @@
 # Shopify 実現可能性 検証ログ
 
-最終更新: 2026-10-10
+最終更新: 2026-10-12
 
 対象要件は `docs/human/requirements.md`。個別の調査結果は `docs/research/` 配下にトピックごとに分けてある。**Shopifyの仕様について不明点があれば、まずこのページの一覧から該当する研究ファイルを確認する。**
 
@@ -8,7 +8,7 @@
 
 | 項目 | 値 |
 |---|---|
-| 開発ストア | `rice-market-dev.myshopify.com` |
+| 開発ストア | `rice-market-dev.myshopify.com`（表示名: `dev-rice-rakuraku-delivery`） |
 | Shop GID | `gid://shopify/Shop/76593725526` |
 | プラン | Basic App Development（`partnerDevelopment: true`） |
 | 国 | JP |
@@ -30,7 +30,7 @@ read_translations, write_translations
 
 `read_publications` は未付与のため、販売チャネルの公開状態を API から読む場合は再認証が必要。
 
-**注意（2026-10-10）**: ストアの表示名（`shop.name`）が `dev-rice-rakuraku-delivery` に変わっている（`myshopifyDomain` は引き続き `rice-market-dev.myshopify.com`、Shop GIDも上記と一致。無関係な作業で変更された模様で、別ストアではない）。管理画面右上のストア名表示がスクリーンショットと食い違って見えることがあるので注意。
+**注意（2026-10-10、Issue #72で確定）**: ストアの表示名（`shop.name`）が `dev-rice-rakuraku-delivery` に変わっている（`myshopifyDomain` は引き続き `rice-market-dev.myshopify.com`、Shop GIDも上記と一致。ユーザーが意図的に変更したものであり、別ストアではない）。管理画面右上のストア名表示がスクリーンショットと食い違って見えることがあるので注意。2026-10-12時点でも`myshopifyDomain`・`primaryDomain.host`は`rice-market-dev.myshopify.com`のまま変化していないことを`shopify store execute`で再確認した。
 
 ## 調査結果一覧（docs/research/）
 

@@ -156,7 +156,7 @@ Flow①の構築中、以下の手順までは正常に進んだ。
 
 ### 今回の検証で判明した副次情報
 
-- ストアの表示名が検証中に `rice-market-dev` から `dev-rice-rakuraku-delivery` に変化していることに気づいた。ただしドメイン（`rice-market-dev.myshopify.com`）・ビジネスエンティティ（`rice-market-dev - entity`、作成日2026年9月20日）は変化しておらず、**同一ストアであることは設定 > 一般で確認済み**。表示名変更の経緯は本セッションでは不明（検証中にユーザー側で変更した可能性がある）。今後このストアを `dev-rice-rakuraku-delivery` という名称で見かけても、`rice-market-dev` と同じストアである
+- ストアの表示名が検証中に `rice-market-dev` から `dev-rice-rakuraku-delivery` に変化していることに気づいた。ただしドメイン（`rice-market-dev.myshopify.com`）・ビジネスエンティティ（`rice-market-dev - entity`、作成日2026年9月20日）は変化しておらず、**同一ストアであることは設定 > 一般で確認済み**。表示名変更はユーザーが意図的に行ったもの（Issue #72）。今後このストアを `dev-rice-rakuraku-delivery` という名称で見かけても、`rice-market-dev` と同じストアである
 
 ## Flow②での追加の落とし穴: 「Release fulfillment order holds」は単体のFulfillmentOrderを要求する（2026-10-11）
 
