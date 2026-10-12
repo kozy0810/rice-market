@@ -59,7 +59,7 @@ legacy廃止（2026-02-26）後、現行 customer accounts には以下が追加
 
 ## Howdyアプリの実機評価（2026-10-02、Issue #47）: 現行構成を維持する
 
-note記事由来の「未検証・二次情報」だった内容を、rice-market-devに実際にインストールして検証した。正式名称は **Howdy NewCustomer Registration**（macro micro Inc、Built for Shopify認証取得済み）。料金は顧客数に応じてBasic $4.99/月（1,000人まで）〜Plus $99.99/月（15,000人まで）、開発ストアは全機能無料。
+note記事由来の「未検証・二次情報」だった内容を、rice-rakuraku-deliveryに実際にインストールして検証した。正式名称は **Howdy NewCustomer Registration**（macro micro Inc、Built for Shopify認証取得済み）。料金は顧客数に応じてBasic $4.99/月（1,000人まで）〜Plus $99.99/月（15,000人まで）、開発ストアは全機能無料。
 出典: https://apps.shopify.com/customer-account-app
 
 ### 分かったこと
@@ -71,7 +71,7 @@ note記事由来の「未検証・二次情報」だった内容を、rice-marke
 4. **派遣元固有の秘匿URLという概念自体がない。** 現行構成（Shopify Forms + Page）の秘匙性は `/pages/signup-<token>` というPage固有のURLに由来するが、Howdyのフォームは全顧客共通の認証入口（メールアドレス→6桁コード）の中に挟み込まれる。「セルフサービスのサインインだけでは購入者を限定できない」（本ファイル後述、実証済み）という既存の制約は、Howdyを挟んでも変わらない。
 5. `/pages/signup/<token>` のような2階層パスのURLも実現しない（Howdy経由でも `/account/...` 配下にとどまる）。`docs/research/signup-url-handle.md` の「2階層パスはHydrogen以外に実現手段がない」という判定は変わらない。
 
-検証後、rice-market-devからHowdyアプリはアンインストール済み。
+検証後、rice-rakuraku-deliveryからHowdyアプリはアンインストール済み。
 
 ### 結論: 現行構成（Shopify Forms + Page）を維持する
 
