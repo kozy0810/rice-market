@@ -41,7 +41,7 @@ read_translations, write_translations
 | [plan-dependent-features.md](./research/plan-dependent-features.md) | プラン依存機能の判定に関する注意、Basicの同時利用言語数 |
 | [serverless-options.md](./research/serverless-options.md) | Shopify Forms / Flowによるサーバーレス構成の可否、構成A/B/Cの比較 |
 | [metaobjects.md](./research/metaobjects.md) | 派遣元マスタの設計、管理画面からの追加、ハンドル自動生成問題 |
-| [checkout.md](./research/checkout.md) | 決済手段・重量別送料・多言語のチェックアウト実機確認 |
+| [checkout.md](./research/checkout.md) | 決済手段・重量別送料・多言語のチェックアウト実機確認。決済方法の「決済手順」はTranslate & Adaptの画面からは翻訳できないが、Admin GraphQL（`translationsRegister`、`resourceType: PAYMENT_GATEWAY`）で翻訳登録・ストアフロントへの反映まで実機確認済み |
 | [royalty-snapshot.md](./research/royalty-snapshot.md) | 注文時点の派遣元スナップショットとロイヤリティ集計 |
 | [app-home-ui-extension.md](./research/app-home-ui-extension.md) | App Home UI Extensionによる、バックエンド不要なロイヤリティ画面の実現可否（Devストアで`shopify.query()`による注文取得・org:タグ絞り込みを実証済み） |
 | [git-management.md](./research/git-management.md) | Shopifyのコード・設定のGit管理可否、テーマ+アプリ構成の制約 |

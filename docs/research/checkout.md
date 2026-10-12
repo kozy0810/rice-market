@@ -229,6 +229,33 @@ Bank Deposit             ← 同上
 
 Translate & Adapt を使えば管理画面から入力できるが、**文言そのものは人間が用意する**。生成AIで下訳を作る方針であれば、法的効力のある文面（特商法・返品ポリシー・振込案内）だけは母語話者の確認を推奨する。
 
+### 訂正・追記: 決済方法の「決済手順」はTranslate & Adaptの画面からは翻訳できない（2026-10-12、実機確認）
+
+上記で「Translate & Adaptを使えば入力できる」としていたのは不正確だった。実際にDevストアの管理画面でTranslate & Adaptアプリ（`/apps/translate-and-adapt`）を開いて確認したところ、翻訳対象のカテゴリ一覧（商品管理・コレクション・ブログ記事・ブログタイトル・Cookieバナー・フィルター・メタオブジェクト・ページ・ポリシー・ストアのメタデータ・メニュー）に**決済方法（手動の決済方法の「決済手順」）は存在しない**。Shopifyコミュニティフォーラムでも同様の報告があり、`PAYMENT_GATEWAY`はTranslate & Adaptアプリの検索対象外であることが確認できた（[コミュニティスレッド](https://community.shopify.com/t/translating-manual-payment-method-instructions/130705)、[TranslatableResourceType](https://shopify.dev/docs/api/admin-graphql/latest/enums/TranslatableResourceType)）。
+
+**ただしAdmin GraphQL APIレベルでは翻訳可能。** `translatableResources(resourceType: PAYMENT_GATEWAY)`で決済方法の`name`・`message`・`before_payment_instructions`フィールドと、その翻訳用`digest`が取得できる。取得した`digest`を使って`translationsRegister`ミューテーションで翻訳を登録すると、実際にストアフロントへ反映されることを実機確認した。
+
+```graphql
+mutation {
+  translationsRegister(
+    resourceId: "gid://shopify/PaymentGateway/108276973654"
+    translations: [{
+      locale: "en"
+      key: "message"
+      value: "Please complete your bank transfer within 7 days of placing your order...(英訳)"
+      translatableContentDigest: "（translatableResourcesクエリで取得したdigest）"
+    }]
+  ) {
+    userErrors { field message }
+    translations { key value locale }
+  }
+}
+```
+
+**実機確認結果**: 銀行振込（`Bank Deposit`）の`message`（決済手順）フィールドに上記で英訳を登録したところ、注文ステータスページ（`https://shopify.com/<shop_id>/account/orders/<token>?locale=en-US`）で実際に英語の決済手順が表示されることを確認した。**ハマりどころ**: このページ（新しいアカウント統合型の注文ステータスページ）は`?locale=en`のような短縮形では効かず、`?locale=en-US`のようにリージョン付きのロケールコードを指定する必要があった。
+
+**rice-marketへの示唆**: 決済方法の案内文（特に銀行振込の振込先情報）を多言語化する場合、Translate & Adaptの管理画面UIは使えない。`shopify store execute`等でAdmin GraphQLを直接叩いて`translationsRegister`を実行する必要がある（アプリの実装、またはワンショットのスクリプトで対応）。日本語の文面を確定させたあとに、必要な言語分（英語・ベトナム語・中国語）を同じ手順で登録する運用になる。
+
 ## 動的チェックアウトボタンの非表示は維持されている
 
 検証の過程で `templates/product.json` の `show_dynamic_checkout` を `false` にしたままにしてある（[cart-validation-function.md](./cart-validation-function.md) 参照）。Buy it now ボタンは表示されない。本番テーマでもこの設定を維持すること。
