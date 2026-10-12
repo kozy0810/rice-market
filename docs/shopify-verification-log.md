@@ -1,6 +1,6 @@
 # Shopify 実現可能性 検証ログ
 
-最終更新: 2026-10-08
+最終更新: 2026-10-10
 
 対象要件は `docs/human/requirements.md`。個別の調査結果は `docs/research/` 配下にトピックごとに分けてある。**Shopifyの仕様について不明点があれば、まずこのページの一覧から該当する研究ファイルを確認する。**
 
@@ -30,6 +30,8 @@ read_translations, write_translations
 
 `read_publications` は未付与のため、販売チャネルの公開状態を API から読む場合は再認証が必要。
 
+**注意（2026-10-10）**: ストアの表示名（`shop.name`）が `dev-rice-rakuraku-delivery` に変わっている（`myshopifyDomain` は引き続き `rice-market-dev.myshopify.com`、Shop GIDも上記と一致。無関係な作業で変更された模様で、別ストアではない）。管理画面右上のストア名表示がスクリーンショットと食い違って見えることがあるので注意。
+
 ## 調査結果一覧（docs/research/）
 
 | ファイル | 内容 |
@@ -42,12 +44,12 @@ read_translations, write_translations
 | [serverless-options.md](./research/serverless-options.md) | Shopify Forms / Flowによるサーバーレス構成の可否、構成A/B/Cの比較 |
 | [metaobjects.md](./research/metaobjects.md) | 派遣元マスタの設計、管理画面からの追加、ハンドル自動生成問題 |
 | [checkout.md](./research/checkout.md) | 決済手段・重量別送料・多言語のチェックアウト実機確認 |
-| [royalty-snapshot.md](./research/royalty-snapshot.md) | 注文時点の派遣元スナップショットとロイヤリティ集計 |
+| [royalty-snapshot.md](./research/royalty-snapshot.md) | 注文時点の派遣元スナップショットとロイヤリティ集計。Issue #8完了（2026-10-12）：`Order created`→`Add order tags`のFlowをユーザーが手動構築し、Admin GraphQL APIで完了条件（スナップショット・転籍後の不変性・派遣元別検索集計）をすべて実機確認済み。副次的に`tag_prefix:`検索がCLI経由では絞り込みとして機能しない現象を発見（実害なし、クライアント側集計が安全網） |
 | [app-home-ui-extension.md](./research/app-home-ui-extension.md) | App Home UI Extensionによる、バックエンド不要なロイヤリティ画面の実現可否（Devストアで`shopify.query()`による注文取得・org:タグ絞り込みを実証済み） |
 | [git-management.md](./research/git-management.md) | Shopifyのコード・設定のGit管理可否、テーマ+アプリ構成の制約 |
 | [signup-url-handle.md](./research/signup-url-handle.md) | 会員登録ページのURLハンドル推測困難化、handleへのスラッシュ不可、sitemap自動掲載とseo.hiddenメタフィールドによる除外 |
 | [self-service-status-change.md](./research/self-service-status-change.md) | 顧客自身によるタグ変更は技術的に不可能なこと、顧客によるメタフィールド書き込みは公式サポートされていること、卒業は所属組織からの削除の自己申告であり購入可否には影響しないこと。実装・実機検証済み（Issue #45、仕様は`docs/specs/self-service-status-change.md`）。組織名の自動同期（`Customer tags added`トリガー + Shopify Flow）も追加実装・実機検証済み（2026-10-06） |
-| [unpaid-order-auto-cancel.md](./research/unpaid-order-auto-cancel.md) | 未入金注文の自動キャンセル（日数指定）はShopify管理画面にネイティブ設定が存在しないこと。チェックアウト設定・一般設定（注文処理）・手動決済方法の3箇所を実機確認済み。Flow依存のため#8と同じ制約でDevストアでは検証不可（Issue #46） |
+| [unpaid-order-auto-cancel.md](./research/unpaid-order-auto-cancel.md) | 未入金注文の自動キャンセル（日数指定）はShopify管理画面にネイティブ設定が存在しないこと。チェックアウト設定・一般設定（注文処理）・手動決済方法の3箇所を実機確認済み。Flow依存の代替案は未着手（Issue #46）。**訂正（2026-10-10）**: 「開発ストアのプランではFlowが開けない」という当初の前提は2026-10-04時点で解消済み（[app-home-ui-extension.md](./research/app-home-ui-extension.md)参照）。Flow自体がこのDevストアで構築・動作することはIssue #8で実証済み（[royalty-snapshot.md](./research/royalty-snapshot.md)）。本機能はまだ未着手なだけで、技術的な障害は残っていない |
 | [cod-payment.md](./research/cod-payment.md) | 代引き(COD)の管理者運用をAPIレベルで検証。「支払い済みとしてマーク」は`orderMarkAsPaid`と`orderCreateManualPayment`の2系統があり後者が決済方法名を残せる。「追加情報」「決済手順」の文言は注文データに保存されない（動的レンダリングと推測、未実証）。PENDINGでも発送可能という点はKOMOJU検証と同じ。あわせて受取拒否・未払い時の配送業者側の実務（保管期限最大7日、受取拒否でも代引き手数料は発生、店舗側負担になりがち）も整理 |
 | [komoju-payment.md](./research/komoju-payment.md) | KOMOJUをテストモードで実機導入し、コンビニ決済の「Authorized→Captured→Shopify Paid」への切り替わりフローを確認済み（Simulate Captureで擬似的に支払い完了させる）。付随して判明した重要事実: 支払いが`PENDING`の注文でもShopifyは発送(fulfillment)をAPIレベルでブロックしない。代引き・銀行振込・コンビニ決済いずれも「支払い確認後に発送」はマーチャントの運用ルール次第であり、Shopify標準機能には未入金発送を防ぐ仕組みがない |
 | [fulfillment-hold-by-payment-status.md](./specs/fulfillment-hold-by-payment-status.md) | 上記の課題（未入金発送事故）への対策をShopify Flowで実装・実機検証済み（Issue #71）。前払い決済（KOMOJU・銀行振込）の注文作成時に自動で発送保留＋タグ`入金待ち`を付与するFlow①、入金確定で保留解除＋タグを`発送可`に切り替えるFlow②を構築。決済ゲートウェイ名は設定画面の表示名と実データが食い違う場合がある（代引き・銀行振込はいずれも英語の内部名）という注意点、および`Release fulfillment order holds`は単体のFulfillmentOrderが必要なため`For each`でループする必要があるという実装上の落とし穴を発見・記録 |
@@ -71,7 +73,7 @@ read_translations, write_translations
 | 重量別・地域別送料 | 可 | 同上 |
 | 重量バリエーション | 可 | 同上 |
 | 産地情報の保持・表示 | 可 | 商品メタフィールド |
-| 未入金注文の自動キャンセル（日数指定可） | 条件付き（Devストアでは不可） | [unpaid-order-auto-cancel.md](./research/unpaid-order-auto-cancel.md)。ネイティブ設定は存在せず、Flow依存。開発ストアのプランではFlowが開けず検証不可（#8と同じ制約） |
+| 未入金注文の自動キャンセル（日数指定可） | 条件付き（未実装） | [unpaid-order-auto-cancel.md](./research/unpaid-order-auto-cancel.md)。ネイティブ設定は存在せず、Flow依存。Flow自体はIssue #8（[royalty-snapshot.md](./research/royalty-snapshot.md)）で動作確認済みのため、プラン制限ではなく単に未着手 |
 
 **要件定義に書かれた項目はすべて Shopify 上で実現可能**であることを確認済み。
 
@@ -88,7 +90,6 @@ read_translations, write_translations
 ## 未検証・推論で代替している項目
 
 - Shopify Forms経由の顧客作成 → 初回サインインの結合（[customer-accounts.md](./research/customer-accounts.md)。開発環境のUI不安定により未実証、推論で「成立する」とみなして先に進んでいる。中核機能に関わるため引き続き本番構築時の確認を推奨）
-- Shopify Flowでの注文スナップショット自動化（[serverless-options.md](./research/serverless-options.md)。nice to have に格下げ済みのため、動かなくても構築は止まらない）
 
 ## 現状のタスク管理
 
