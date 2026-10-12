@@ -23,12 +23,10 @@ Web検索でも同様の結論（Shopify標準にはこの機能はなく、Shop
 
 **Shopify管理画面には「未入金注文を指定日数後に自動キャンセルする」ネイティブ設定は存在しない。** 実現にはShopify Flow（スケジュールトリガー + 未入金注文の検索 + キャンセルアクション）か、サードパーティアプリが必要。
 
-Flowは[serverless-options.md](./serverless-options.md)で確認済みの通り、本番Basicプランでは使えるが、このストアのプラン（`Basic App Development`）では開けない。したがって **#46はDevストアでは実装・検証できず、#8（注文と派遣元の紐付け、Flow依存）と同じ制約に当たる。**
-
 カスタムアプリ側（`apps/shopify-app/`）にスケジュール実行ジョブを持たせる手段もあるが、これは常時稼働するサーバーが必要になり、[serverless-options.md](./serverless-options.md)で決定した構成B（サーバー不要）の前提と矛盾するため採用しない。
 
-## 本番実装での見込み
+### 訂正（2026-10-13）
 
-- 本番Basicプラン契約後（Issue #19 移管後）にFlowで「スケジュールトリガー（毎日）→ 未入金かつ作成からN日経過した注文を検索 → キャンセル」を組めるか確認する
-- 管理者が日数を管理画面から変更できるようにする要件は、Flowのトリガー条件に使う数値をどこに持たせるか（Flow内に直書きか、メタフィールド等で外出しするか）次第。これも本番プランでの検証が必要
-- nice to haveであり、登録・購入ゲートという中核機能には影響しない（[serverless-options.md](./serverless-options.md)の構成B決定を参照）
+上記の「Flowはこのストアのプランでは開けない」という前提は誤りだったことが、Issue #8・#71で判明済み（[shopify-verification-log.md](../shopify-verification-log.md)参照）。**このDevストアでFlowは問題なく開け、ワークフローを組める。** したがって本機能は「Devストアでは検証不可」ではなく、単に未着手だっただけ。
+
+実装設計・作成手順は [docs/specs/unpaid-order-auto-cancel.md](../specs/unpaid-order-auto-cancel.md) に移した。既存の[fulfillment-hold-by-payment-status.md](../specs/fulfillment-hold-by-payment-status.md)のFlow①（前払い注文の発送保留）に、Wait→再チェック→Cancel orderのステップを追記する形で実現する。
