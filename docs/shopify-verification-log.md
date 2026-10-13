@@ -92,7 +92,9 @@ read_translations, write_translations
 
 ## 未検証・推論で代替している項目
 
-- Shopify Forms経由の顧客作成 → 初回サインインの結合（[customer-accounts.md](./research/customer-accounts.md)。開発環境のUI不安定により未実証、推論で「成立する」とみなして先に進んでいる。中核機能に関わるため引き続き本番構築時の確認を推奨）
+（現時点でなし）
+
+**訂正（2026-10-13）**: 「Shopify Forms経由の顧客作成 → 初回サインインの結合」を長らくここに挙げていたが、これは実際には2026-09-24（Issue #6）に実機確認済みだった（[customer-accounts.md](./research/customer-accounts.md)「解決（2026-09-24、Issue #6）」節）。ファイル内の見出しが検証開始時点の「未実証・推論」のまま放置されていたため、本ログもそれをそのまま参照し続け、長期間「未解決」と誤認していた。顧客ID`gid://shopify/Customer/10150015991894`が現在も結合済み状態（`member`タグ・`verifiedEmail: true`）で存在することを再確認済み。
 
 ## 現状のタスク管理
 
