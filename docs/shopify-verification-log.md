@@ -87,6 +87,8 @@ read_translations, write_translations
 
 **サーバー不要の構成B（Shopify Forms による登録 + Validation Function による購入ゲート）を採用する。** 保守を続ける予定がないため、自社サーバーを持つ構成A・Cは除外した。注文スナップショット（ロイヤリティ集計の自動化・Shopify Flow）は nice to have に格下げし、Flowが本番プランで動くかどうかは構成選択のブロッカーではなくなった。詳細と理由は [serverless-options.md](./research/serverless-options.md) の「決定」節を参照。
 
+**この「サーバー不要」は、Lambda・Fargateのようなサーバーレスサービスも含めて除外する、という意味で徹底する。** Webhookの受け口など「軽量なサーバーレス関数1つだけ」であっても、保守対象が増えることに変わりはないため採用しない。実装を検討する過程でサーバー（サーバーレス含む）が必要になりそうな場合は、それを採用する前に、多少実装が複雑になってもサーバーを使わない代替案を検討する（[self-service-status-change.md](./research/self-service-status-change.md)のIssue #45検討で、Flow Trigger・Webhook受けのいずれもこの理由で却下した）。
+
 ## 未検証・推論で代替している項目
 
 - Shopify Forms経由の顧客作成 → 初回サインインの結合（[customer-accounts.md](./research/customer-accounts.md)。開発環境のUI不安定により未実証、推論で「成立する」とみなして先に進んでいる。中核機能に関わるため引き続き本番構築時の確認を推奨）
