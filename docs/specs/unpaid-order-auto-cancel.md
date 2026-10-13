@@ -113,7 +113,7 @@ Waitを数分（作成からキャンセルまで約2分7秒）に短縮して�
 - `refunds[0].refundLineItems[0].restockType`: `CANCEL`（Restock items: ONが機能し、在庫が復元された）
 - 顧客への通知メール送信もタイムラインで確認できた
 
-**唯一の気づき**: キャンセル後も注文のタグに`入金待ち`が残ったまま（`Remove order tags`ステップを設計に入れていなかったため）。実害はないが、一覧の見た目がキャンセル済みなのに「入金待ち」のままで紛らわしい。Cancel orderの後に`Remove order tags`（`入金待ち`削除）を追加する改善の余地がある（未対応）。
+**気づき（解決済み）**: キャンセル後も注文のタグに`入金待ち`が残ったまま（`Remove order tags`ステップを設計に入れていなかったため）だったが、Issue #85でFlow①に`Cancel order`の後の`Remove order tags`（`入金待ち`削除）ステップを追加し、注文#1031（銀行振込）で実機確認済み。`cancelledAt: 2026-10-13T16:04:42Z`、`tags: ["org:sakura"]`のみとなり、`入金待ち`タグが正しく削除されることを確認した。
 
 ### 待機中に入金確定した場合はキャンセルされず`発送可`に切り替わること（注文#1025、銀行振込）
 
@@ -138,10 +138,45 @@ Wait待機中に管理画面の「支払い済みとしてマーク」を実行�
 | 管理者が管理画面から、自動キャンセルまでの日数を変更できる | 確認できた（Flow①のWaitノードの数値を書き換えるだけで変更可能） |
 | 設定した日数のとおりに未入金注文が自動キャンセルされることを確認している | **確認できた**（注文#1023、上記参照） |
 
-**Issue #46はクローズ可能。** 残るのはタグ残存の改善（任意）と、下記の今後の検討事項のみ。
+**Issue #46はクローズ可能。** 残るのは下記の今後の検討事項のみ。
+
+## 重要な制約（2026-10-13、Issue #85の検証中に発見）: Waitの期間はKOMOJU側の支払い期限より長くすること
+
+Issue #85（タグ残存の改善）の動作確認中、**KOMOJUのコンビニ決済では自動キャンセルが失敗する**現象を発見した。
+
+### 発生した事象
+
+Waitを1分に短縮した状態でKOMOJU決済のテスト注文（#1029・#1030）を放置したところ、`Cancel order`アクションが以下のエラーで失敗した。
+
+```
+例外: INVALID - orderId - Cannot cancel an order that has pending payments
+```
+
+一方、同じ条件で銀行振込（Bank Deposit）の注文（#1023・#1031）は問題なくキャンセルできた。
+
+### 原因
+
+[Shopifyヘルプセンター「保留中の支払い」](https://help.shopify.com/en/manual/fulfillment/managing-orders/payments/pending-payments)によると、**支払い保留中（Pending payment）の注文は、決済プロバイダのシステムとの同期を保つためキャンセルできない**。この制限は支払いが成功・失敗・期限切れ（`Expired`）のいずれかになるまで解除されない。Pending paymentの有効期限は**通常1週間**とされている。
+
+- **銀行振込（Bank Deposit）**: 手動決済方法のため、この「決済プロバイダとの同期」保護の対象外。PENDINGのままでも`orderCancel`が通る
+- **KOMOJU（Payments App経由）**: この保護の対象。KOMOJU側の決済がまだ有効（Expiredになっていない）な間は、Shopify側のpending transactionも有効期限内のままで、キャンセルがブロックされる
+
+KOMOJU側のコンビニ決済の支払い期限は**マーチャントが任意に設定可能で、最小1日**（ユーザー確認済み）。これがShopify側のpending transactionの有効期限（`pendingExpiresAt`）に反映されると推測される。
+
+### 対応方針
+
+**自動キャンセルFlowのWait期間は、必ずKOMOJU側の支払い期限より長く設定すること。** デフォルト7日（Issue #2の事業判断）を使う場合、KOMOJU側の支払い期限はそれより短く（例: 1〜3日程度）設定しておく必要がある。この関係が崩れる（KOMOJU側の期限の方が長い）と、Wait完了時点でまだKOMOJU側の決済がPendingのままの可能性があり、`Cancel order`がエラーで失敗する。
+
+**本番移管時に必ず確認すること**: KOMOJU側の支払い期限設定と、自動キャンセルFlowのWait期間（7日）の大小関係。
+
+### Issue #85（タグ残存の改善）の検証について
+
+KOMOJU決済でのエラーにより、Issue #85の本題（タグ削除の確認）はいったんKOMOJU決済では検証できなかった。銀行振込で再テスト（注文#1031）し、`Cancel order`の後に`Remove order tags`ステップを追加した結果、`tags: ["org:sakura"]`のみとなり`入金待ち`タグが正しく削除されることを確認した。**Issue #85はクローズ可能。**
+
+なお、`Cancel order`自体のアクション構成（Reason: Other、Send a notification: ON、Refund: ON、Restock items: ON）は実機で確認できた。設計時点の想定（Refund: OFF）と異なりRefundがONになっているが、未入金（PENDING）の注文では課金自体が発生していないため、実害（二重返金等）はない（`displayFinancialStatus: VOIDED`になることで確認済み）。
 
 ## 今後の検討事項
 
 - 分割発送等で1注文に複数のFulfillment Orderがある場合、Cancel orderアクションがすべてのFulfillment Orderを正しくキャンセルするかは未確認
 - 「Reason」に未入金キャンセルに適した選択肢がなければ「Other」で運用するが、本番導入後に選択肢が増えていないか都度確認する
-- キャンセル後もタグ`入金待ち`が残る点の改善（`Cancel order`の後に`Remove order tags`を追加するかはお任せ、必須ではない）
+- **本番移管時、KOMOJU側の支払い期限設定を確認し、自動キャンセルFlowのWait期間（7日）より短いことを確認すること**（上記「重要な制約」参照）
