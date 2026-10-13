@@ -254,17 +254,33 @@ Issue #46（未入金注文の自動キャンセル、[unpaid-order-auto-cancel.
 
 **ただし、これはFlow経由ではなくAPI直叩きでの確認。** 実際の自動キャンセルFlowが同じ結果になるかは未検証のまま（ロジック自体は同じ`orderCancel`相当のはずで、信頼度は高い）。
 
-### 未検証のまま残る: Flow①のHoldが複数Fulfillment Orderに対応しているか
+### 解決: Flow①のHoldは複数Fulfillment Orderに対応していないことが判明（2026-10-13、Issue #84、ユーザーがFlow①の設定パネルを確認）
 
-**今回のテストでは検証できていない、最も重要な未確認事項。** 上記の手順では「最初から複数のFulfillment Orderが存在する注文」に対してFlow①が実際にどう動くかではなく、作成直後の単一Fulfillment Orderに対してAPIで人為的にHoldをかけた（Flow①自体は実行されていない）。
+Flow①「前払い注文の発送保留」の`Hold fulfillment order`ノードの設定パネルを実機で確認した。
 
-Flow②の「Flow②での追加の落とし穴」節（本ドキュメント前半）に記録した通り、Flow①の`Hold fulfillment order`アクションは`For each`なしでエラーなく設定できている。これは「`Order created`トリガー側では単体のFulfillmentOrderが直接取得できる（作成直後は1件しかない前提）」という推測に基づくが未確認のまま。**もし最初から分割済みの注文（複数ロケーション在庫等）に対してFlow①が1件目のFulfillment OrderしかHoldしない設計になっていた場合、未入金のまま一部が発送されてしまう事故につながる。** Issue #71の目的を直撃する重要度の高い未確認事項。
+```
+Order: order.id
+FulfillmentOrder: fulfillmentorder が見つかりません
+Reason: AWAITING_PAYMENT
+```
 
-確認には、Flow①の「Hold fulfillment order」ノードの設定パネル（Fulfillment order欄に何を指定しているか、`For each`の中にあるか）を見る必要がある。Flow編集画面はブラウザ自動操作との相性が悪いため、人の手での確認を推奨。
+キャンバス構成は以下の通りで、`Hold fulfillment order`は`For each`ループの外にある単発ステップ。
+
+```
+Condition（Payment gateway names is equal to KOMOJU... OR Bank Deposit）
+→ True
+→ Hold fulfillment order（単発、For eachなし）
+→ Add order tags（入金待ち）
+→ Wait for 7 days
+```
+
+**判定: Flow①のHoldは複数Fulfillment Orderに対応していない設計になっている。** `FulfillmentOrder`欄が「見つかりません」というエラー表示になっているのは、このアクションが単一のFulfillmentOrderを前提にしており、ループなしで直接参照しようとした変数解決が（UIプレビュー上）失敗していることの表れとみられる。単一Fulfillment Orderの通常注文（#1016・#1017・#1023・#1025など、これまでの実機テストすべて）では実害なく動作してきたが、**最初から複数ロケーション在庫等で分割済みの注文に対しては、最初の1件（またはトリガーが解決できる1件）しかHoldされない可能性が高い。** もしこれが起きると、未入金のまま一部の商品だけ発送されてしまう——Flow①本来の目的（Issue #71）を損なう事故になる。
+
+このDevストアでは全商品が単一ロケーション（`Shop location`）にしか在庫がないため、通常の注文作成で自然に分割発送が発生することは現状ない。**実害が顕在化するのは複数ロケーション運用を始めた場合、または何らかの理由で最初から分割済みの注文が来た場合。** 対応（`For each`の追加）は本番で複数ロケーション運用を検討する段階で行えば十分、今すぐの対応は不要と判断する。
 
 ## 今後の検討事項
 
 - クレジットカード（Shopify Payments）を導入する場合、決済ゲートウェイ名を正確に把握してFlow①の対象外に含める必要がある
 - 決済方法が今後増えた場合（他のAPMアプリ追加等）、Flow①の条件に追加するメンテナンスが必要になる。決済方法の追加・変更時はこのドキュメントとFlowの条件を両方更新すること
-- **Flow①のHoldが複数Fulfillment Orderに対応しているかの確認（Issue #84、未解決。上記参照）**
+- **Flow①のHoldを`For each`対応にする改修（複数ロケーション運用を始める場合は対応必須。Issue #84で発見、未対応）**
 - Flowの編集画面（埋め込みiframe）はブラウザ自動操作（CDP）との相性が悪く、テキスト入力やノードのクリックが安定しないことが2回の検証で分かった。今後Flowの画面操作が必要な作業は、自動化を試みるより先に人手での対応を優先する
