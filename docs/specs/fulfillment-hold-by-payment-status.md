@@ -233,9 +233,38 @@ Issue #46（未入金注文の自動キャンセル、[unpaid-order-auto-cancel.
 
 **→ 代引きの手動マーク操作でもFlow②は正しく動作し、誤動作しないことを実機確認した。** 「今後の検討事項」にあった代引き版の未確認事項は解消。
 
+## 追加確認: 分割発送（複数Fulfillment Order）での動作（2026-10-13、Issue #84、一部）
+
+このDevストアの商品はすべて単一ロケーション（`Shop location`）にしか在庫がなく、自然な分割発送は発生しない。`fulfillmentOrderSplit`ミューテーションで人為的に1つのFulfillment Orderを2つに分割し、複数FO状態を作って検証した。
+
+### 検証手順（共通）
+
+1. 数量2の下書き注文を作成 → `draftOrderComplete(paymentPending: true)`でPENDING注文を作成（この時点ではFulfillment Orderは1件のみ）
+2. `fulfillmentOrderSplit(fulfillmentOrderSplits: [{fulfillmentOrderId, fulfillmentOrderLineItems: [{id, quantity: 1}]}])`で2件に分割
+   - **ハマりどころ**: この後継ミューテーションは `input:` ではなく `fulfillmentOrderSplits:`（複数形のリスト）を引数に取る。レスポンスも `fulfillmentOrderSplits { remainingFulfillmentOrder, replacementFulfillmentOrder }` という入れ子構造で、ドキュメントの古いサンプル（`originalFulfillmentOrder`等のトップレベルフィールド）をそのまま使うと `undefinedField` で失敗する
+3. 分割後、2件のFulfillment OrderそれぞれにFlow①が通常行う処理（`fulfillmentOrderHold` + 注文への`入金待ち`タグ付与）を手動で再現
+
+### 確認できたこと: Flow②のRelease（実際にFlowを通して確認、注文#1027）
+
+`orderCreateManualPayment(paymentMethodName: "Bank Deposit")`で支払い済みにマークしたところ、タイムラインに`fulfillment_order_hold_released`・`fulfillment_order_released`が**それぞれ2回ずつ**記録され、2件のFulfillment Order双方が`OPEN`に戻ったことを確認した。タグも`入金待ち`→`発送可`に正しく切り替わった。**Flow②の`For each`ループは複数Fulfillment Orderに対して設計通り正しく動作する。**
+
+### 確認できたこと（ただしFlow経由ではない）: Cancel orderアクション相当（`orderCancel`直叩き、注文#1028）
+
+自動キャンセルFlowの`Cancel order`アクションを実際にFlow経由で動かす代わりに、同じパラメータ（`reason: OTHER, restock: true, notifyCustomer: true`）で`orderCancel`ミューテーションを直接実行した。結果、2件のFulfillment Order双方が`CLOSED`になり、`refund_restock`「2点のアイテムの在庫を補充しました」・`refund_created`「2点のアイテムを返金しました」と、**複数Fulfillment Orderにまたがる在庫復元・返金処理が注文単位で一括して正しく行われた**（`Cancel order`アクションは`For each`なしの単発ステップとして設計してあるが、`orderCancel`自体が内部的に全Fulfillment Orderを処理するため問題ない）。
+
+**ただし、これはFlow経由ではなくAPI直叩きでの確認。** 実際の自動キャンセルFlowが同じ結果になるかは未検証のまま（ロジック自体は同じ`orderCancel`相当のはずで、信頼度は高い）。
+
+### 未検証のまま残る: Flow①のHoldが複数Fulfillment Orderに対応しているか
+
+**今回のテストでは検証できていない、最も重要な未確認事項。** 上記の手順では「最初から複数のFulfillment Orderが存在する注文」に対してFlow①が実際にどう動くかではなく、作成直後の単一Fulfillment Orderに対してAPIで人為的にHoldをかけた（Flow①自体は実行されていない）。
+
+Flow②の「Flow②での追加の落とし穴」節（本ドキュメント前半）に記録した通り、Flow①の`Hold fulfillment order`アクションは`For each`なしでエラーなく設定できている。これは「`Order created`トリガー側では単体のFulfillmentOrderが直接取得できる（作成直後は1件しかない前提）」という推測に基づくが未確認のまま。**もし最初から分割済みの注文（複数ロケーション在庫等）に対してFlow①が1件目のFulfillment OrderしかHoldしない設計になっていた場合、未入金のまま一部が発送されてしまう事故につながる。** Issue #71の目的を直撃する重要度の高い未確認事項。
+
+確認には、Flow①の「Hold fulfillment order」ノードの設定パネル（Fulfillment order欄に何を指定しているか、`For each`の中にあるか）を見る必要がある。Flow編集画面はブラウザ自動操作との相性が悪いため、人の手での確認を推奨。
+
 ## 今後の検討事項
 
 - クレジットカード（Shopify Payments）を導入する場合、決済ゲートウェイ名を正確に把握してFlow①の対象外に含める必要がある
 - 決済方法が今後増えた場合（他のAPMアプリ追加等）、Flow①の条件に追加するメンテナンスが必要になる。決済方法の追加・変更時はこのドキュメントとFlowの条件を両方更新すること
-- 分割発送等で1注文に複数のFulfillment Orderが存在するケースでの動作は未確認。Flow②は`For each`で全Fulfillment Orderをループする設計にしたため、理論上は複数件でも正しく動くはずだが実機では未検証
+- **Flow①のHoldが複数Fulfillment Orderに対応しているかの確認（Issue #84、未解決。上記参照）**
 - Flowの編集画面（埋め込みiframe）はブラウザ自動操作（CDP）との相性が悪く、テキスト入力やノードのクリックが安定しないことが2回の検証で分かった。今後Flowの画面操作が必要な作業は、自動化を試みるより先に人手での対応を優先する
