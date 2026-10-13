@@ -29,4 +29,4 @@ Web検索でも同様の結論（Shopify標準にはこの機能はなく、Shop
 
 上記の「Flowはこのストアのプランでは開けない」という前提は誤りだったことが、Issue #8・#71で判明済み（[shopify-verification-log.md](../shopify-verification-log.md)参照）。**このDevストアでFlowは問題なく開け、ワークフローを組める。** したがって本機能は「Devストアでは検証不可」ではなく、単に未着手だっただけ。
 
-実装設計・作成手順は [docs/specs/unpaid-order-auto-cancel.md](../specs/unpaid-order-auto-cancel.md) に移した。既存の[fulfillment-hold-by-payment-status.md](../specs/fulfillment-hold-by-payment-status.md)のFlow①（前払い注文の発送保留）に、Wait→再チェック→Cancel orderのステップを追記する形で実現する。
+実装設計・作成手順・実機確認結果は [docs/specs/unpaid-order-auto-cancel.md](../specs/unpaid-order-auto-cancel.md) に移した。既存の[fulfillment-hold-by-payment-status.md](../specs/fulfillment-hold-by-payment-status.md)のFlow①（前払い注文の発送保留）に、Wait→再チェック→Cancel orderのステップを追記する形で実現し、Devストアで実機構築・動作確認済み（Issue #46、2026-10-13）。

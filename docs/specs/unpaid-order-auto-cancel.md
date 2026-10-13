@@ -90,7 +90,58 @@ Flow①の**Waitアクションの日数欄をデフォルト7日で設定**し�
 
 確認結果は本ドキュメントまたは[docs/research/unpaid-order-auto-cancel.md](../research/unpaid-order-auto-cancel.md)に追記する。
 
+## 実機確認の結果（2026-10-13、Issue #46）
+
+ユーザーがFlow①にWait→Condition→Cancel orderを追記し、実際のテスト注文で動作を確認した。
+
+### 未入金放置で自動キャンセルされること（注文#1023、銀行振込）
+
+Waitを数分（作成からキャンセルまで約2分7秒）に短縮してテスト。`shopify store execute`でタイムライン（`events`）・`refunds`を取得し確認した。
+
+```
+13:38:44 作成（Bank Deposit、PENDING）
+13:38:48 fulfillment_order_marked_as_on_hold（Flow①: 既存部分も正常動作）
+13:40:50 payment_cancel_success（Bank Depositでの決済をキャンセル）
+13:40:50 refund_restock（在庫を補充）
+13:40:50 refund_created（1点のアイテムと配送料を返金＝0円のキャンセル用Refund）
+13:40:51 closed / cancelled（Flow Platformが注文をキャンセル）
+13:40:51 mail_sent（注文のキャンセルメールを送信）
+```
+
+- `cancelReason`: `OTHER`（設計通り）
+- `displayFinancialStatus`: `VOIDED`（未入金分は適切にVoid。Refund設定はOFFのままで正しい）
+- `refunds[0].refundLineItems[0].restockType`: `CANCEL`（Restock items: ONが機能し、在庫が復元された）
+- 顧客への通知メール送信もタイムラインで確認できた
+
+**唯一の気づき**: キャンセル後も注文のタグに`入金待ち`が残ったまま（`Remove order tags`ステップを設計に入れていなかったため）。実害はないが、一覧の見た目がキャンセル済みなのに「入金待ち」のままで紛らわしい。Cancel orderの後に`Remove order tags`（`入金待ち`削除）を追加する改善の余地がある（未対応）。
+
+### 待機中に入金確定した場合はキャンセルされず`発送可`に切り替わること（注文#1025、銀行振込）
+
+Wait待機中に管理画面の「支払い済みとしてマーク」を実行し、Flow②（入金確定で保留解除）が正しく動作してCancel orderには進まないことを確認した。詳細は[fulfillment-hold-by-payment-status.md](./fulfillment-hold-by-payment-status.md)の「追加確認」節を参照。要点のみ記載する。
+
+```
+14:16:47 sale_success（Bank Depositによって支払い済みとして手動マーク）
+14:16:50 fulfillment_order_hold_released（Shopify Flowが保留を解除）
+14:16:50 fulfillment_order_released
+```
+
+- `displayFinancialStatus`: `PAID`
+- タグ: `入金待ち` → `発送可`
+- `fulfillmentOrders`のstatus: `ON_HOLD` → `OPEN`
+- Cancel orderは実行されず（Condition「タグに`入金待ち`を含む」がFalseになったため、Waitが完了する前に入金確定した場合の分岐は未検証。今回は支払い確定後にWaitが完了したケース）
+
+### Issue #46の完了条件に対する結論
+
+| 完了条件 | 状態 |
+|---|---|
+| デフォルト値が7日に設定されている | 確認できた（Waitを7日に戻して運用） |
+| 管理者が管理画面から、自動キャンセルまでの日数を変更できる | 確認できた（Flow①のWaitノードの数値を書き換えるだけで変更可能） |
+| 設定した日数のとおりに未入金注文が自動キャンセルされることを確認している | **確認できた**（注文#1023、上記参照） |
+
+**Issue #46はクローズ可能。** 残るのはタグ残存の改善（任意）と、下記の今後の検討事項のみ。
+
 ## 今後の検討事項
 
 - 分割発送等で1注文に複数のFulfillment Orderがある場合、Cancel orderアクションがすべてのFulfillment Orderを正しくキャンセルするかは未確認
 - 「Reason」に未入金キャンセルに適した選択肢がなければ「Other」で運用するが、本番導入後に選択肢が増えていないか都度確認する
+- キャンセル後もタグ`入金待ち`が残る点の改善（`Cancel order`の後に`Remove order tags`を追加するかはお任せ、必須ではない）

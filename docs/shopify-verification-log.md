@@ -50,7 +50,7 @@ read_translations, write_translations
 | [signup-url-handle.md](./research/signup-url-handle.md) | 会員登録ページのURLハンドル推測困難化、handleへのスラッシュ不可、sitemap自動掲載とseo.hiddenメタフィールドによる除外 |
 | [self-service-status-change.md](./research/self-service-status-change.md) | 顧客自身によるタグ変更は技術的に不可能なこと、顧客によるメタフィールド書き込みは公式サポートされていること、卒業は所属組織からの削除の自己申告であり購入可否には影響しないこと。実装・実機検証済み（Issue #45、仕様は`docs/specs/self-service-status-change.md`）。組織名の自動同期（`Customer tags added`トリガー + Shopify Flow）も追加実装・実機検証済み（2026-10-06） |
 | [unpaid-order-auto-cancel.md](./research/unpaid-order-auto-cancel.md) | 未入金注文の自動キャンセル（日数指定）はShopify管理画面にネイティブ設定が存在しないこと。チェックアウト設定・一般設定（注文処理）・手動決済方法の3箇所を実機確認済み。**訂正（2026-10-10）**: 「開発ストアのプランではFlowが開けない」という当初の前提は2026-10-04時点で解消済み（[app-home-ui-extension.md](./research/app-home-ui-extension.md)参照）。Flow自体がこのDevストアで構築・動作することはIssue #8で実証済み（[royalty-snapshot.md](./research/royalty-snapshot.md)）。設計・実装手順は[docs/specs/unpaid-order-auto-cancel.md](./specs/unpaid-order-auto-cancel.md)に移行済み（Issue #46、2026-10-13） |
-| [unpaid-order-auto-cancel.md](./specs/unpaid-order-auto-cancel.md) | 未入金注文の自動キャンセルをShopify Flowで実装する設計（Issue #46）。既存Flow①（[fulfillment-hold-by-payment-status.md](./specs/fulfillment-hold-by-payment-status.md)）にWait 7日→タグ再チェック→Cancel orderを追記する方式。日数変更は管理者がFlow画面でWaitの数値を直接書き換える運用（ユーザー判断、metafield外出し方式は見送り）。Waitアクションはワークフローあたり最大90日、待機後は最新データで再評価されることを一次情報で確認済み。設計のみで、Devストアでの実機構築・動作確認は未実施 |
+| [unpaid-order-auto-cancel.md](./specs/unpaid-order-auto-cancel.md) | 未入金注文の自動キャンセルをShopify Flowで実装（Issue #46）。既存Flow①（[fulfillment-hold-by-payment-status.md](./specs/fulfillment-hold-by-payment-status.md)）にWait→タグ再チェック→Cancel orderを追記する方式で、ユーザーが実機構築・動作確認済み（2026-10-13）。注文#1023（未入金放置）が意図通り自動キャンセル・在庫復元・通知送信されたこと、注文#1025（待機中に支払いを手動マーク）がキャンセルされずFlow②で`発送可`に切り替わることをタイムラインで確認。副次的に、銀行振込の手動「支払い済みとしてマーク」でも`Order paid`トリガーが確実に発火することを実証（代引きは引き続き未検証） |
 | [cod-payment.md](./research/cod-payment.md) | 代引き(COD)の管理者運用をAPIレベルで検証。「支払い済みとしてマーク」は`orderMarkAsPaid`と`orderCreateManualPayment`の2系統があり後者が決済方法名を残せる。「追加情報」「決済手順」の文言は注文データに保存されない（動的レンダリングと推測、未実証）。PENDINGでも発送可能という点はKOMOJU検証と同じ。あわせて受取拒否・未払い時の配送業者側の実務（保管期限最大7日、受取拒否でも代引き手数料は発生、店舗側負担になりがち）も整理 |
 | [komoju-payment.md](./research/komoju-payment.md) | KOMOJUをテストモードで実機導入し、コンビニ決済の「Authorized→Captured→Shopify Paid」への切り替わりフローを確認済み（Simulate Captureで擬似的に支払い完了させる）。付随して判明した重要事実: 支払いが`PENDING`の注文でもShopifyは発送(fulfillment)をAPIレベルでブロックしない。代引き・銀行振込・コンビニ決済いずれも「支払い確認後に発送」はマーチャントの運用ルール次第であり、Shopify標準機能には未入金発送を防ぐ仕組みがない |
 | [fulfillment-hold-by-payment-status.md](./specs/fulfillment-hold-by-payment-status.md) | 上記の課題（未入金発送事故）への対策をShopify Flowで実装・実機検証済み（Issue #71）。前払い決済（KOMOJU・銀行振込）の注文作成時に自動で発送保留＋タグ`入金待ち`を付与するFlow①、入金確定で保留解除＋タグを`発送可`に切り替えるFlow②を構築。決済ゲートウェイ名は設定画面の表示名と実データが食い違う場合がある（代引き・銀行振込はいずれも英語の内部名）という注意点、および`Release fulfillment order holds`は単体のFulfillmentOrderが必要なため`For each`でループする必要があるという実装上の落とし穴を発見・記録 |
@@ -74,7 +74,7 @@ read_translations, write_translations
 | 重量別・地域別送料 | 可 | 同上 |
 | 重量バリエーション | 可 | 同上 |
 | 産地情報の保持・表示 | 可 | 商品メタフィールド |
-| 未入金注文の自動キャンセル（日数指定可） | 可（設計済み・実装待ち） | [docs/specs/unpaid-order-auto-cancel.md](./specs/unpaid-order-auto-cancel.md)。ネイティブ設定は存在せず、既存Flow①（Issue #71）への追記で実現する設計まで固めた。Devストアでの実機構築・動作確認はこれから（Issue #46） |
+| 未入金注文の自動キャンセル（日数指定可） | 可 | [docs/specs/unpaid-order-auto-cancel.md](./specs/unpaid-order-auto-cancel.md)。ネイティブ設定は存在せず、既存Flow①（Issue #71）への追記で実現。Devストアで実機構築・動作確認済み（Issue #46、2026-10-13） |
 
 **要件定義に書かれた項目はすべて Shopify 上で実現可能**であることを確認済み。
 
