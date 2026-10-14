@@ -71,6 +71,33 @@ Admin APIの実行には `write_content` または `write_online_store_pages` �
 - 旧URL（`/pages/sakura-signup`）は404になることを確認した
 - sitemapから除外されたことを再確認した（`sitemap_pages_1.xml` に `contact` のみが残り、登録ページは載らなくなった）
 
+## 補足（2026-10-14）: さくらの登録フォームは既定テンプレート `page.json` のフォールバックで表示されている
+
+上の「新URLで登録フォームが問題なく表示された」は事実だが、**表示の経路が想定と違っていた。** リポジトリとライブテーマを突き合わせる過程で判明した。
+
+さくらの登録ページの `templateSuffix` は `Forms - sakura-signup` だが、**この名前に対応するテンプレートファイル `templates/page.Forms - sakura-signup.json` はライブテーマに存在しない。** 存在しないテンプレートを指しているため、Shopifyは既定の `templates/page.json` にフォールバックしており、そこにShopify Formsのブロック（`form_id: 1161577`）が入っているおかげでフォームが表示されている。
+
+実機で確認した内容:
+
+- `/pages/signup-76953dbc2dbb` を取得すると `200` で返り、`form_id: 1161577` と `shopify-forms-loader.js` が含まれている（フォームは表示されている）
+- レンダリング結果の `class="page-width page-width--narrow ..."` に `center` クラスが**付いていない**。`page.sakura-signup.json` は `text_alignment: "center"` を持つため、もしそのテンプレートが使われていれば `center` が付く。付いていないことから、使われているのは `text_alignment` 設定を持たない既定の `page.json` だと判別できる
+- ライブテーマの `templates/` 一覧に `page.Forms - sakura-signup.json` は無い。一方で `page.sakura-signup.json` は存在するが、`templateSuffix` が `sakura-signup` のページは1つも無いため**孤児になっている**
+
+ひまわりの方は `templateSuffix: Forms - himawari-signup` と `templates/page.Forms - himawari-signup.json` が正しく対応している。この非対称性から、さくら側は設定ミスと判断できる。
+
+### これが引き起こす問題
+
+1. **リポジトリの `page.json` をライブにpushすると、さくらの登録フォームが消える。** リポジトリ側の `page.json` にはFormsブロックが入っていなかった（＝ライブの方が正しい状態だった）。2026-10-14にライブの内容をリポジトリへ取り込んで解消した
+2. **既定テンプレートを使う新規ページを作ると、そこにさくらの登録フォームが出る。** 本ドキュメントの「URLを推測困難にする」という方針と相反する。現状はページが3つ（お問い合わせ・さくら登録・ひまわり登録）しか無く、いずれも専用のテンプレート指定を持つため実害は出ていない
+
+### 推奨する正しい形（未実施・要判断）
+
+ライブの描画結果が変わるため、実施するかどうかは判断が必要。
+
+- `templates/page.Forms - sakura-signup.json` を作成し、さくら用のFormsブロックをそこへ移す（ひまわりと同じ形に揃える）
+- `templates/page.json` はFormsブロックを持たない素の状態に戻す
+- 孤児の `templates/page.sakura-signup.json` を削除するか、上記の正しいファイル名へ改名する
+
 ## 未検証・残課題
 
 - `seo.hidden` を設定したページが、ストア内検索（storefront search）の結果から実際に消えるかは未確認（ドキュメント記載のみ）。
