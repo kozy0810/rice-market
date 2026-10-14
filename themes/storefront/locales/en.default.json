@@ -1,5 +1,11 @@
 {
   "general": {
+    "login_gate": {
+      "heading": "Sign-in required",
+      "message": "This store is available to registered members only. Please sign in to continue.",
+      "login_button": "Sign in",
+      "signup_note": "To register, please use the sign-up link provided by your organization."
+    },
     "password_page": {
       "login_form_heading": "Enter store using password:",
       "login_password_button": "Enter using password",

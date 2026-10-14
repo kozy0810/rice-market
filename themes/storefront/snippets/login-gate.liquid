@@ -1,0 +1,38 @@
+{% comment %}
+  未ログインの訪問者に表示する唯一の画面。
+
+  ヘッダー・フッター・カートドロワーは意図的に描画していない。ナビゲーションの構成や
+  商品への導線を未ログインの訪問者に見せないため。会員登録は派遣元ごとの個別URLから
+  行うので、ここに登録へのリンクは置かない（URLを推測困難にする方針のため。
+  docs/research/signup-url-handle.md 参照）。
+{% endcomment %}
+
+{{ 'component-login-gate.css' | asset_url | stylesheet_tag }}
+
+<main id="MainContent" class="login-gate" role="main" tabindex="-1" data-template="login-gate">
+  <div class="login-gate__inner">
+    {%- if settings.logo != blank -%}
+      {%- assign logo_alt = settings.logo.alt | default: shop.name | escape -%}
+      <img
+        src="{{ settings.logo | image_url: width: 400 }}"
+        alt="{{ logo_alt }}"
+        width="{{ settings.logo.width }}"
+        height="{{ settings.logo.height }}"
+        class="login-gate__logo"
+        loading="eager"
+      >
+    {%- else -%}
+      <p class="login-gate__shop-name h2">{{ shop.name }}</p>
+    {%- endif -%}
+
+    <h1 class="login-gate__heading h2">{{ 'general.login_gate.heading' | t }}</h1>
+
+    <p class="login-gate__message">{{ 'general.login_gate.message' | t }}</p>
+
+    <a href="{{ routes.account_login_url }}" class="button login-gate__button">
+      {{ 'general.login_gate.login_button' | t }}
+    </a>
+
+    <p class="login-gate__note">{{ 'general.login_gate.signup_note' | t }}</p>
+  </div>
+</main>
