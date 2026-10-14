@@ -31,6 +31,11 @@ description: rice-marketプロジェクトのShopify（Devストア・カスタ�
 - **Shopify FlowのLiquidコードエディタ（例: 「Update customer metafield」のValue欄）は`{%`や`{{`の入力でスニペット自動補完ポップアップが開く。** ブラウザ自動操作で長いLiquid文字列を一度に`type`すると、途中のスペースキーがポップアップの確定操作として誤認識され、無関係なテンプレート片（`{% assign variable_name = value %}`等）が挿入されて壊れる。対処: `{%`/`{{`を打つたびに`Escape`でポップアップを閉じてから続きを入力し、`End`キーで自動補完された閉じ括弧の後ろへ移動してから次のタグを追記する（詳細は`docs/research/self-service-status-change.md`の追補参照）
 - **`shopify app deploy`は、デプロイを実行した作業ツリーに存在する拡張機能だけでアクティブバージョンを丸ごと置き換える。** 複数のセッション・ブランチ・worktreeが同じカスタムアプリ（`apps/shopify-app/`）を並行して触っていると、片方のデプロイがもう片方の拡張機能（self-graduationが丸ごと消えた実例あり）を黙って消す。デプロイ前に`shopify app info`でローカルツリーの拡張機能一覧を確認し、Dev Dashboard（`dev.shopify.com/dashboard/<組織ID>/apps/<アプリID>/versions`）でアクティブバージョンの内容と突き合わせること。経緯は`docs/specs/self-service-status-change.md`の「訂正（2026-10-08）」節を参照
 - **Customer Account UI Extensionは`shopify app deploy`でバージョンに含めるだけでは画面に現れない。** テーマのApp Blockと同様、設定 > チェックアウト > 編集 で開く「お客様アカウント」カスタマイズエディタで、対象ページ（例: プロフィール）に明示的にブロックとして追加・保存する必要がある。「アクティブバージョンに拡張が含まれているか」と「ページにブロックとして配置されているか」は別の確認ポイント
+- **`shopify theme push`は、マージ済みのテーマPRを黙って巻き戻す。** `shopify app deploy`とまったく同じ事故が、テーマ側でも起きる。マージ済みのテーマPRより前に分岐したブランチ・worktreeからpushすると、そのPRの変更がライブテーマから消える（PR #69のお問い合わせフォーム改修が、#69より古い`fix/storefront-logo-size`からのpushで7ファイルまるごと巻き戻った実例あり。経緯は`docs/research/contact-form.md`の「ライブテーマの巻き戻り事故」節を参照）。push前に必ず次を確認する。
+  - `git log --oneline main -- themes/`と自分のブランチの同じログを比べ、自分のツリーに取り込まれていないテーマ変更が無いか見る。あれば先に`main`を取り込む
+  - `--theme <ID>`でテーマIDを明示する。`shopify theme list`で`[current]`になっているDevelopmentテーマへ誤爆するのを防ぐ
+  - 一部ファイルだけ直すときは`--only`で対象を絞り、`--nodelete`を付ける。**ライブテーマには管理画面やアプリが作ったGit管理外のファイルがある**（Shopify Formsが作る`templates/page.Forms - *.json`など）。素のpushはそれらを消す
+  - push前に`shopify theme pull`でライブテーマ全体をscratchpadに退避しておけば、壊しても戻せる
 
 ## 記録のフォーマット
 

@@ -22,6 +22,69 @@
 
 通知先メールアドレス（3節、2026-10-13追記分）は現在の実装にも関係なく有効な情報。
 
+## ライブテーマの巻き戻り事故（2026-10-14）
+
+### 何が起きたか
+
+ユーザーからの「お問い合わせページが以前のUIに戻ってませんか？」という指摘を受けて調査したところ、Devストアのライブテーマ `rice-market-storefront`（#160721141846）が、**PR #69（お問い合わせフォームの入力項目見直し・UI調整）の変更だけを失った状態**になっていた。リポジトリ側の `themes/storefront/` は正常で、#69の変更はすべて `main` に入っていた。壊れていたのはライブテーマのみ。
+
+`shopify theme pull` でライブテーマ全体を取得してリポジトリと比較した結果、実質的な差分は以下の7ファイルで、これは #69 のコミット（`5121478`）が変更したファイルと完全に一致した。他のファイルの差分は、Shopifyがpull時に自動付与する「auto-generated」コメントヘッダだけだった。
+
+| ファイル | 巻き戻りによってライブ側で起きていたこと |
+|---|---|
+| `sections/contact-form.liquid` | 名前・メールアドレスの入力欄が復活（#69でhiddenにしたはずのものがDawn標準の2カラム表示に戻る）。問い合わせ内容の `required minlength="10"` が消滅。利用規約の同意チェックボックスが消滅。電話番号のpatternが緩い方に戻る。送信成功後の `history.replaceState` が消滅 |
+| `assets/section-contact-form.css` | 名前・メール欄用の2カラムgridが復活、`.contact__agreement` のマージン指定が消滅 |
+| `sections/main-page.liquid` | 見出しサイズが `h0` 固定に戻る（`heading_size` 設定項目そのものが消滅） |
+| `templates/page.contact.json` | パディングが36/36に戻り、#69で調整した見出しとフォームの間隔が失われる |
+| `locales/ja.json` | 「問い合わせ内容」が「コメント」に戻る、`agreement` キーが消滅 |
+| `locales/en.default.json` | `agreement` キーが消滅 |
+| `sections/main-collection-banner.liquid` | 商品一覧ページの不要な見出し（`<h1>商品`）が復活 |
+
+ヘッダー・フッター（PR #63）には影響がなく、`config/settings_data.json` も無傷だった。
+
+### 原因
+
+**#69をマージする前に分岐したローカルブランチ `fix/storefront-logo-size`（HEAD: `de3a2d9`）の作業ツリーから `shopify theme push` された**ことが原因。根拠は次の2点。
+
+1. `git diff de3a2d9 HEAD -- themes/` の結果が、上記7ファイル（= #69の変更ファイル）とそのまま一致する。つまりこのブランチのツリーは「HEAD から #69 を引いたもの」に等しい
+2. `git archive de3a2d9 themes/storefront` で取り出したツリーとライブテーマを全ファイル比較したところ、`sections/`・`assets/` は完全一致した（残る差分は `templates/*.json` の自動生成コメントヘッダのみ）
+
+`shopify theme push` は、`shopify app deploy` が「デプロイした作業ツリーにある拡張機能だけでアクティブバージョンを置き換える」のと同じ挙動をする。つまり**push元のツリーの内容がそのままライブテーマになる**ため、マージ済みのテーマPRを含まない古いブランチからpushすると、そのPRの変更が黙って消える。
+
+### 復旧手順
+
+ライブテーマ全体を事前にscratchpadへ `shopify theme pull` で退避した上で、該当7ファイルだけを `--only` で指定してpushした。
+
+```
+shopify theme push --store rice-market-dev.myshopify.com --theme 160721141846 \
+  --allow-live --nodelete --path themes/storefront \
+  --only sections/contact-form.liquid \
+  --only sections/main-collection-banner.liquid \
+  --only sections/main-page.liquid \
+  --only assets/section-contact-form.css \
+  --only templates/page.contact.json \
+  --only locales/ja.json \
+  --only locales/en.default.json
+```
+
+push後に再度 `shopify theme pull` して検証し、7ファイルすべてがリポジトリと一致することを確認した（`.json` ファイルは自動生成コメントヘッダを除いて一致）。
+
+ポイントは以下の通り。
+
+- **`--theme <ID>` でテーマIDを明示する。** `shopify theme list` で開発用テーマが `[current]` になっていることがあり、省略すると誤爆する
+- **`--allow-live` が非対話環境では必須。** 付けないと「ライブテーマにpushしますか？」の確認プロンプトで失敗する
+- **全体pushはしない。** ライブテーマには Shopify Forms が管理画面で作った `templates/page.Forms - himawari-signup.json` が存在し、これはGit管理外だった。素の `shopify theme push` はローカルに無いリモートファイルを削除するため、このテンプレートが消える。`--only` で対象を絞り、保険として `--nodelete` も付けた
+- 上記の `page.Forms - himawari-signup.json` は、同じ事故を次に誰かが起こさないようこの対応と同時にリポジトリへ取り込んだ（既存の `page.sakura-signup.json` と同じ構造の派遣元サインアップページ。`form_id` は `1182251`）
+
+### 再発防止
+
+`shopify-dev-verification` スキルの「よくあるハマりどころ」に、テーマ版の同種事故としてこの件を追記した。テーマをpushする前に確認すべきことは次の通り。
+
+- `git log --oneline main -- themes/` と自分のブランチの同じログを比べ、自分のツリーに取り込まれていないテーマ変更がないか確認する。あれば先に `main` を取り込む
+- `--theme <ID>` でテーマIDを明示する
+- 一部ファイルだけ直すときは `--only` で絞り、`--nodelete` を付ける
+- push前に `shopify theme pull` でライブテーマ全体を退避しておく
+
 ## 目的
 
 ストアの「お問い合わせ」フォーム（Dawn標準の`contact-form`セクション + `form 'contact'`タグ）が実際に動作するかを検証する。
