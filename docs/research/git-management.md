@@ -35,7 +35,10 @@
 
 テーマファイルはGit管理下にあるが、一部は管理画面やアプリが書き換える。「リポジトリとライブテーマを比較したら差分が出た」とき、それが巻き戻り事故なのか管理画面側の正当な更新なのかを区別する必要がある。
 
-- `templates/page.sakura-signup.json`、`templates/page.Forms - himawari-signup.json` は Shopify Forms のブロックを含むページテンプレート。**管理画面でフォームを編集するとShopify側が書き換える。** 後者は元々ライブテーマにしか存在せずGit管理外だったが、`shopify theme push`（`--only`なし）で消えてしまう爆弾だったため2026-10-14にリポジトリへ取り込んだ（経緯は`docs/research/contact-form.md`の「ライブテーマの巻き戻り事故」節）。フォーム定義そのものは依然としてGit管理外で、テンプレートが参照する`form_id`だけがコードに残る
+- `templates/page.json`、`templates/page.sakura-signup.json`、`templates/page.Forms - himawari-signup.json` は Shopify Forms のブロックを含むページテンプレート。**管理画面でフォームを編集するとShopify側が書き換える。** フォーム定義そのものは依然としてGit管理外で、テンプレートが参照する`form_id`だけがコードに残る
+  - `page.Forms - himawari-signup.json` は元々ライブテーマにしか存在せずGit管理外だったが、`shopify theme push`（`--only`なし）で消えてしまう爆弾だったため2026-10-14にリポジトリへ取り込んだ（経緯は`docs/research/contact-form.md`の「ライブテーマの巻き戻り事故」節）
+  - `page.json`（既定のページテンプレート）も同様に、ライブにだけさくらの登録フォームのブロックが入っていて、**リポジトリ側をpushするとさくらの登録フォームが消える状態だった**（さくらの登録ページは存在しないテンプレートを指していて、この `page.json` にフォールバックして描画されている）。2026-10-14にライブの内容を取り込んで解消した。構造としては正しくないため整理が必要（詳細と推奨形は`docs/research/signup-url-handle.md`の「補足（2026-10-14）」節）
+- `templates/{404,article,password,product}.json` は、`theme pull` するとリポジトリ側と差分が出るが、**中身はShopifyによる正規化のみ**（空の`"settings": {}`の挿入、キーの並び替え、`<\/p>`→`</p>`のエスケープ解除）。意味のある差分ではないので追従不要
 - テーマエディタで編集可能なセクション設定（`templates/*.json`、`config/settings_data.json`）も同様に管理画面から書き換わる
 - `shopify theme pull` で取得した `locales/*.json` と `templates/*.json` には、Shopifyが「auto-generated」コメントヘッダを自動付与する。リポジトリ側にはこのヘッダが無いため、**pull結果と素朴にdiffすると全ファイルが差分として出る。** 実質的な差分を見るときはこのヘッダを除外して比較する
 
