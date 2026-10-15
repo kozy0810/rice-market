@@ -36,6 +36,8 @@ description: rice-marketプロジェクトのShopify（Devストア・カスタ�
   - `--theme <ID>`でテーマIDを明示する。`shopify theme list`で`[current]`になっているDevelopmentテーマへ誤爆するのを防ぐ
   - 一部ファイルだけ直すときは`--only`で対象を絞り、`--nodelete`を付ける。**ライブテーマには管理画面やアプリが作ったGit管理外のファイルがある**（Shopify Formsが作る`templates/page.Forms - *.json`など）。素のpushはそれらを消す
   - push前に`shopify theme pull`でライブテーマ全体をscratchpadに退避しておけば、壊しても戻せる
+  - **push直前に`git branch --show-current`で作業ツリーのブランチを確認する。** pushが送るのは「マージしたブランチの中身」ではなく「今の作業ツリーの中身」。PRをマージした後も作業ツリーが別ブランチのままだと、変更が入っていないテーマを送って「pushは成功したのに反映されない」状態になる（2026-10-15、ログインゲートのライブ反映で実際に発生）
+  - push後は、ライブから対象ファイルを`shopify theme pull --only <ファイル>`で引き直し、中身が意図どおりか突き合わせる。成功メッセージだけでは反映されたか分からない
 
 ## 記録のフォーマット
 

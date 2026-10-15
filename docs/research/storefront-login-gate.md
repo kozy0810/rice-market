@@ -151,6 +151,44 @@ $ curl .../collections/all/products.json   # 未ログイン
 
 上記「1.」の検証は、この問題を回避するためにチェックアウトルール「member tag gate」を一時的に無効化した状態で行っている（検証後に有効へ戻した）。**ルールが有効なままでは、ゲートの「ログインする」ボタンから先に進めない。** ライブテーマでも同じ現象が起きるためゲートの実装が原因ではないが、ゲートを本番に出す前にこの問題を解消しておく必要がある（ゲートが入ると、ログインが未登録者以外にとって唯一の導線になるため）。
 
+## ライブテーマへの反映（2026-10-15）
+
+PR #93 をマージし、ライブテーマ `rice-market-storefront`（#160721141846）へ反映した。**Devストアのストアフロントは現在このゲートが有効な状態になっている。**
+
+前提として、ログイン導線を塞いでいた不具合（[cart-validation-function.md](./cart-validation-function.md)の「ストアフロントのログイン受け渡しがブロックされる」節、Issue #97）をPR #98で先に解消してある。ゲートが入るとログインが唯一の導線になるため、この順序が必要だった。
+
+手順は `shopify-dev-verification` スキルのチェックリストに従った。
+
+1. `git log --oneline origin/main -- themes/` と作業ブランチを比較し、未取り込みのテーマ変更が無いことを確認
+2. `shopify theme pull --theme 160721141846` でライブ全体（349ファイル）を退避
+3. ゲート関連の7ファイルだけを `--only` で指定してpush
+
+```
+shopify theme push --store rice-market-dev.myshopify.com \
+  --theme 160721141846 --allow-live --nodelete \
+  --only layout/theme.liquid --only snippets/login-gate.liquid \
+  --only assets/component-login-gate.css \
+  --only locales/ja.json --only locales/en.default.json \
+  --only locales/vi.json --only locales/zh-CN.json
+```
+
+### 反映後の確認（未ログイン・新規セッション）
+
+| 対象 | 結果 |
+|---|---|
+| `/`・`/collections/all`・`/pages/contact`・`/products/*`・`/cart`・`/search` | ゲート表示、商品リンク0件 |
+| `/en/`・`/vi/`・`/zh/` | ゲート表示 |
+| `/pages/signup-76953dbc2dbb`・`/pages/himawari-7f3a9c2e5b81`・`/en/pages/signup-...` | 登録フォーム表示（例外が効いている） |
+| `/policies/terms-of-service`・`/policies/privacy-policy` | 表示 |
+
+ログイン済みのブラウザでライブテーマを開き、ゲートが外れて商品・ヘッダーが表示されることもあわせて確認した。
+
+### 反映作業中に踏んだ失敗
+
+**最初のpushは、作業ツリーが別のブランチ（ゲートを取り込む前のブランチ）のままだったため、ゲートが入っていないテーマをライブへ送っていた。** pushは成功と表示されるが、ライブの `layout/theme.liquid` にはゲートの判定が入らず、`snippets/login-gate.liquid` も作られない。
+
+ライブの内容と同じものを送っただけだったので実害は出ず、`--only` で対象を絞っていたため他のファイルへの巻き戻りも起きなかった。**`shopify theme push` は「今の作業ツリーの中身」を送るのであって「マージしたブランチの中身」を送るのではない、という当たり前の事実の再確認。** push後は、ライブから対象ファイルを `pull` し直して中身を突き合わせるまでが手順。
+
 ## 運用上の注意
 
 **新しく派遣元の会員登録ページを作るときは、テンプレート割り当ての名前に `signup` を含めること。** 判定が `page.template_suffix contains 'signup'` なので、含まれていないと登録ページがゲートされ、登録してもらえなくなる。
