@@ -289,7 +289,8 @@
   ol.steps > li {
     counter-increment: step;
     display: grid;
-    grid-template-columns: 1.9rem 1fr;
+    grid-template-columns: 1.6rem 1fr;
+    align-items: start;
     gap: 0.9rem;
     padding-left: 0;
   }
@@ -297,19 +298,126 @@
     content: counter(step);
     font-family: var(--font-mono);
     font-size: 0.8rem;
+    line-height: 1;
     color: var(--accent);
     border: 1px solid var(--accent);
     width: 1.6rem;
     height: 1.6rem;
     display: grid;
     place-items: center;
-    margin-top: 0.3rem;
+    margin-top: 0.35rem;
   }
-  ol.steps ul {
-    margin-top: 0.3rem;
+  /* 通常フロー。flex にすると <code> などのインライン要素が
+     flex アイテムとしてブロック化され、行が分断される */
+  .step-body { min-width: 0; }
+  .step-body > ul {
+    margin-top: 0.4rem;
     font-size: 0.93rem;
     color: var(--ink-soft);
+    gap: 0.3rem;
+    max-width: none;
   }
+
+  /* --- 図版 --- */
+  figure {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0;
+  }
+  figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+  }
+  figcaption {
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--muted);
+    max-width: 44rem;
+  }
+  figcaption .cap-label {
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 0.4rem;
+  }
+  .figure-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2.25rem;
+  }
+
+  /* --- 流れ図 --- */
+  .pipeline {
+    list-style: none;
+    padding-left: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    max-width: none;
+    counter-reset: pipe;
+  }
+  .pipeline > li {
+    counter-increment: pipe;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.9rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-top: 2px solid var(--accent);
+  }
+  .pipeline > li::after {
+    content: "→";
+    position: absolute;
+    right: -0.72rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .pipeline > li:last-child::after { content: none; }
+  .pipeline .pipe-step {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .pipeline .pipe-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .pipeline .pipe-note {
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: var(--ink-soft);
+  }
+  @media (max-width: 52rem) {
+    .pipeline { grid-template-columns: 1fr; gap: 1.1rem; }
+    .pipeline > li::after {
+      content: "↓";
+      right: auto;
+      left: 1rem;
+      top: auto;
+      bottom: -1rem;
+      transform: none;
+    }
+  }
+  .pipeline-branch {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    border-left: 2px solid var(--hold);
+    background: var(--hold-soft);
+    padding: 0.8rem 1rem;
+    max-width: none;
+  }
+  .pipeline-branch .pipe-title { color: var(--hold); }
 
   footer {
     border-top: 1px solid var(--line);
@@ -373,26 +481,83 @@
     <h2>お客様から見た画面を触る</h2>
     <p>会員登録から注文完了までを通してみてください。開発ストアでは実際のクレジットカード決済・代引き・銀行振込を処理できないため、購入のテストにはShopifyのテスト決済を使います。<strong>課金は一切発生しません。</strong></p>
     <ol class="steps">
-      <li>ストアURLを開き、ストアパスワード <code>rteild</code> を入力してサイトに入る</li>
-      <li>「商品を見る」から商品一覧・商品詳細ページを見てみる</li>
-      <li>会員登録ページ（<code>/pages/signup-76953dbc2dbb</code>）を開き、新規会員登録をしてみる
-        <ul>
-          <li>登録すると、そのままサインインした状態になります</li>
-          <li>このURLは派遣元ごとに別のページを用意する作りです（上記はそのうちの1つです）</li>
-        </ul>
+      <li><div class="step-body">ストアURLを開き、ストアパスワード <code>rteild</code> を入力してサイトに入る</div></li>
+      <li><div class="step-body">「商品を見る」から商品一覧・商品詳細ページを見てみる</div></li>
+      <li>
+        <div class="step-body">
+          <span>会員登録ページ（<code>/pages/signup-76953dbc2dbb</code>）を開き、新規会員登録をしてみる</span>
+          <ul>
+            <li>登録すると、そのままサインインした状態になります</li>
+            <li>このURLは派遣元ごとに別のページを用意する作りです（上記はそのうちの1つです）</li>
+          </ul>
+        </div>
       </li>
-      <li>商品をカートに入れて、チェックアウトに進む</li>
-      <li>決済情報の入力画面で、次のテスト用の値を入力する（<strong>実際のカード情報は入力しないでください</strong>）
-        <ul>
-          <li>カード番号: <code>1</code>（決済が承認される場合をシミュレートする値です）</li>
-          <li>有効期限: 未来の日付なら何でも可（例: 12/30）</li>
-          <li>セキュリティコード: 任意の3桁（例: 123）</li>
-          <li>名前・住所などは適当な値で構いません</li>
-        </ul>
+      <li><div class="step-body">商品をカートに入れて、チェックアウトに進む</div></li>
+      <li>
+        <div class="step-body">
+          <span>決済情報の入力画面で、次のテスト用の値を入力する（<strong>実際のカード情報は入力しないでください</strong>）</span>
+          <ul>
+            <li>カード番号: <code>1</code>（決済が承認される場合をシミュレートする値です）</li>
+            <li>有効期限: 未来の日付なら何でも可（例: 12/30）</li>
+            <li>セキュリティコード: 任意の3桁（例: 123）</li>
+            <li>名前・住所などは適当な値で構いません</li>
+          </ul>
+        </div>
       </li>
-      <li>注文完了の画面まで進めるか確認する</li>
+      <li><div class="step-body">注文完了の画面まで進めるか確認する</div></li>
     </ol>
     <p>会員登録をしていない状態でカートから購入しようとすると、購入をブロックする仕組み（会員限定販売）が働きます。こちらも試していただくと分かりやすいです。</p>
+
+    <figure>
+      <img src="img/review-storefront-home.jpg" alt="公開中のトップページ。ヘッダーにロゴとホーム・商品一覧・お問い合わせのメニュー、下に商品一覧としてコシヒカリ 10kg・30kg・5kgが並んでいる" />
+      <figcaption><span class="cap-label">現在のトップページ</span>商品画像は検証用のサンプル画像です。右上から言語を切り替えられます。</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>入金から発送までの自動処理</h2>
+    <p>このサイトで一番分かりにくいのが、「今どちらが動く番なのか」です。前払い（コンビニ払い・銀行振込）では入金を確認するまで発送できないため、未入金のまま発送してしまう事故が起きやすくなります。そこで、次の流れを自動化しました。</p>
+
+    <ol class="pipeline">
+      <li>
+        <span class="pipe-step">STEP 1</span>
+        <span class="pipe-title">注文が入る</span>
+        <span class="pipe-note">お客様がコンビニ払い・銀行振込を選んで注文します。</span>
+      </li>
+      <li>
+        <span class="pipe-step">STEP 2</span>
+        <span class="pipe-title">自動で発送保留</span>
+        <span class="pipe-note">注文にタグ <code>入金待ち</code> が付き、発送できない状態になります。</span>
+      </li>
+      <li>
+        <span class="pipe-step">STEP 3</span>
+        <span class="pipe-title">入金を確認</span>
+        <span class="pipe-note">コンビニ払いは自動で確認されます。銀行振込は管理者が入金明細と突き合わせます。</span>
+      </li>
+      <li>
+        <span class="pipe-step">STEP 4</span>
+        <span class="pipe-title">保留が外れる</span>
+        <span class="pipe-note">タグが <code>発送可</code> に切り替わります。ここで初めて発送します。</span>
+      </li>
+    </ol>
+
+    <div class="pipeline-branch">
+      <span class="pipe-title">入金がないまま一定期間（1週間が目安）過ぎたら</span>
+      <span class="pipe-note">注文を自動でキャンセルし、在庫を戻します。タグも外れます。管理者の操作は不要です。</span>
+    </div>
+
+    <p>代引きは入金の確認を待つ必要がないため、この保留の対象外です。注文が入ったらそのまま発送できます。</p>
+
+    <div class="figure-grid">
+      <figure>
+        <img src="img/review-order-hold.jpg" alt="管理画面の注文詳細。上部に「保留(1) Flowによる保留 決済待ち」と表示され、決済状況は決済保留中になっている" />
+        <figcaption><span class="cap-label">STEP 2 の見え方</span>注文の上部に「Flowによる保留」と出ます。この状態では発送に進めません。</figcaption>
+      </figure>
+      <figure>
+        <img src="img/review-order-tags.jpg" alt="同じ注文の下部。右側のタグ欄に org:sakura と 入金待ち のタグ、左側のタイムラインにShopify Flowが保留としてマークした記録が並んでいる" />
+        <figcaption><span class="cap-label">タグとタイムライン</span>右側のタグ欄で状態が、左側のタイムラインで「いつ何が自動で起きたか」が分かります。</figcaption>
+      </figure>
+    </div>
   </section>
 
   <section>
@@ -432,7 +597,7 @@
           <tr>
             <td>派遣元へのロイヤリティ集計</td>
             <td><span class="chip chip-ok">確認済み</span></td>
-            <td>注文時点の派遣元を注文側に記録するため、転籍・卒業後も過去分の集計は変わりません</td>
+            <td>注文時点の派遣元を注文側に記録するため、転籍・卒業後も過去分の集計は変わりません。<strong>できるのは集計までで、派遣元への送金は管理者が別途行います</strong>（送金機能はありません）</td>
           </tr>
           <tr>
             <td>代引き・銀行振込</td>
@@ -441,8 +606,8 @@
           </tr>
           <tr>
             <td>コンビニ決済</td>
-            <td><span class="chip chip-decide">採用するか未決定</span></td>
-            <td>KOMOJUという決済代行をテストモードで導入し、支払い確認までの流れは確認済み。採用するかはご判断次第です</td>
+            <td><span class="chip chip-ok">確認済み</span><span class="chip chip-hold">本番契約待ち</span></td>
+            <td>採用が決まりました。KOMOJUという決済代行をテストモードで導入し、支払い確認までの流れは確認済み。本番で使うにはKOMOJUとの契約が必要です</td>
           </tr>
           <tr>
             <td>未入金の注文を自動キャンセル</td>
@@ -502,11 +667,11 @@
           </tr>
           <tr>
             <td class="path">アプリ &gt; Flow</td>
-            <td>自動処理の一覧（前払い注文の発送保留、入金確認時の保留解除、未入金注文の自動キャンセル）。各Flowを開くと、実行履歴（いつどの注文で動いたか）も見られます</td>
+            <td>自動処理の一覧。前払い注文の発送保留・未入金注文の自動キャンセル、入金確定での保留解除、注文への派遣元タグの記録、顧客タグ追加時の組織名の同期の4本が動いています。各Flowを開くと実行履歴（いつどの注文で動いたか）も見られます</td>
           </tr>
           <tr>
             <td class="path">アプリ &gt; Royalty Calculator</td>
-            <td>派遣元ごとの売上とロイヤリティの集計画面。これも開発中のカスタムアプリの画面です。<strong>メニューに見当たらない場合は、アプリのインストール状態を確認しますのでお知らせください</strong>（本番ストアでは改めてインストールする作業が入ります）</td>
+            <td>派遣元ごとの売上とロイヤリティの集計画面。年・月・ロイヤリティ率を指定して「集計する」を押すと、派遣元ごとの注文件数・売上・ロイヤリティ額が出ます。<strong>集計までが機能で、送金は管理者が行います。</strong>開発中のカスタムアプリの画面のため、本番ストアでは改めてインストールする作業が入ります</td>
           </tr>
           <tr>
             <td class="path">設定 &gt; 決済</td>
@@ -539,6 +704,27 @@
         </tbody>
       </table>
     </div>
+
+    <p>特に使用頻度が高い4つの画面は、実際の表示が次のようになっています。</p>
+
+    <div class="figure-grid">
+      <figure>
+        <img src="img/review-customer-tags.jpg" alt="管理画面の顧客詳細。右下のタグ欄に member、org:test-agency-b、shopify-forms-1161577 のタグが並んでいる" />
+        <figcaption><span class="cap-label">お客様</span>右下の「タグ」欄が購入資格と所属派遣元です。<code>member</code> を外すと購入できなくなります。</figcaption>
+      </figure>
+      <figure>
+        <img src="img/review-metaobjects.jpg" alt="管理画面のメタオブジェクト一覧。定義名「派遣元組織」が2件のエントリーを持っている" />
+        <figcaption><span class="cap-label">派遣元組織</span>「派遣元組織」を開き、「エントリーを追加」で派遣元を登録します。</figcaption>
+      </figure>
+      <figure>
+        <img src="img/review-flow.jpg" alt="管理画面のFlowワークフロー一覧。前払い注文の発送保留、注文作成時に派遣元タグを注文へスナップショット、入金確定で発送保留を解除、顧客タグ追加時に組織名を同期の4件がアクティブ" />
+        <figcaption><span class="cap-label">Flow（自動処理）</span>4本がアクティブです。行をクリックすると中身と実行履歴を確認できます。</figcaption>
+      </figure>
+      <figure>
+        <img src="img/review-royalty.jpg" alt="Royalty Calculatorの画面。年・月・ロイヤリティ率を指定した集計結果として、さくら協同組合の注文2件・合計売上18,000円・ロイヤリティ額270円が表示されている" />
+        <figcaption><span class="cap-label">Royalty Calculator</span>月とロイヤリティ率を指定して集計します。表示は検証用データによるものです。</figcaption>
+      </figure>
+    </div>
   </section>
 
   <section>
@@ -562,7 +748,7 @@
           <span class="item-where">KOMOJU</span>
         </div>
         <div class="item-body">
-          <p>テストモードでの動作は確認済みですが、本番で使うにはKOMOJUとの契約・審査が必要です。採用するかどうかのご判断が先になります。</p>
+          <p>コンビニ決済の採用は決まりました。テストモードでの動作は確認済みですが、本番で使うにはKOMOJUとの契約・審査が必要です。あわせて、未入金注文の自動キャンセルまでの待機日数を、KOMOJU側で設定する支払い期限より長くしておく必要があります（支払い待ちの注文はShopify側からキャンセルできないため）。</p>
         </div>
       </div>
       <div class="item">
@@ -662,19 +848,12 @@
         </div>
         <div class="item-body"><p>下訳は生成AIで作る方針ですが、返品ポリシー・振込案内・特商法表記などの法的な文面は、母語話者による確認を推奨します。誰に見てもらうかを決める必要があります。</p></div>
       </div>
-      <div class="item">
-        <div class="item-head">
-          <strong>コンビニ決済を採用するか</strong>
-          <span class="item-where">決済手段</span>
-        </div>
-        <div class="item-body"><p>代引きを主軸、銀行振込を補助とする方針は確定しています。コンビニ決済を加えるかは未決定です（KOMOJUが候補）。</p></div>
-      </div>
     </div>
 
     <div class="note section-sub">
       <span class="note-label">運用上、先に共有しておきたいこと</span>
       <p>銀行振込は、入金明細に注文番号が載りません（振込人名義・金額・日時のみ）。そのため注文との突き合わせは手作業になります。負担を減らすため、振込時にお名前の前に注文番号を入れていただく案内（例: 「1001 グエン」）を用意する方針です。</p>
-      <p>コンビニ決済を採用する場合、支払い待ちの注文はShopify側からキャンセルできないという制約があります。未入金の自動キャンセルまでの待機日数は、コンビニ払いの支払い期限より長く設定する必要があります。</p>
+      <p>決済手段は、代引きを主軸・銀行振込を補助とし、これにコンビニ決済を加える形で確定しました。コンビニ決済では、支払い待ちの注文をShopify側からキャンセルできないという制約があるため、未入金の自動キャンセルまでの待機日数はコンビニ払いの支払い期限より長く設定します。</p>
     </div>
   </section>
 
