@@ -1,5 +1,11 @@
 {
   "general": {
+    "login_gate": {
+      "heading": "Cần đăng nhập",
+      "message": "Cửa hàng này chỉ dành cho thành viên đã đăng ký. Vui lòng đăng nhập để tiếp tục.",
+      "login_button": "Đăng nhập",
+      "signup_note": "Để đăng ký, vui lòng sử dụng đường dẫn đăng ký do tổ chức của bạn cung cấp."
+    },
     "password_page": {
       "login_form_heading": "Vào cửa hàng bằng mật khẩu:",
       "login_password_button": "Vào bằng mật khẩu",
