@@ -4,6 +4,11 @@
     "target": "cart.validations.generate.run",
     "input": {
       "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/1"
+          }
+        ],
         "buyerIdentity": {
           "customer": {
             "isMember": true
