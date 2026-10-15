@@ -17,13 +17,20 @@ const NOT_MEMBER_MESSAGE: Partial<Record<LanguageCode, string>> = {
 
 // 購入できるのは「member」タグを持つ顧客だけ。
 // 未ログイン、またはタグを失った顧客（卒業者）はチェックアウトを拒否する。
+//
+// ただし空のカートは素通りさせる。ストアフロントのログイン受け渡し
+// （/customer_authentication/...）でもこの関数が評価され、その時点では
+// 顧客がカートに紐づいていないため、無条件にエラーを返すとログイン自体が
+// 中断されてしまうため（Issue #97）。空のカートからは購入できないので、
+// 購入ゲートとしての機能は落ちない。
 export function cartValidationsGenerateRun(
   input: CartValidationsGenerateRunInput,
 ): CartValidationsGenerateRunResult {
   const customer = input.cart.buyerIdentity?.customer;
   const errors: ValidationError[] = [];
+  const cartIsEmpty = input.cart.lines.length === 0;
 
-  if (!customer?.isMember) {
+  if (!cartIsEmpty && !customer?.isMember) {
     const language = input.localization.language.isoCode;
     errors.push({
       message: NOT_MEMBER_MESSAGE[language] ?? NOT_MEMBER_MESSAGE.JA!,

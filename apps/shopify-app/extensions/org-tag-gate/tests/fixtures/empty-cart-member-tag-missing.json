@@ -1,0 +1,30 @@
+{
+  "payload": {
+    "export": "cart-validations-generate-run",
+    "target": "cart.validations.generate.run",
+    "input": {
+      "cart": {
+        "lines": [],
+        "buyerIdentity": {
+          "customer": {
+            "isMember": false
+          }
+        }
+      },
+      "localization": {
+        "language": {
+          "isoCode": "JA"
+        }
+      }
+    },
+    "output": {
+      "operations": [
+        {
+          "validationAdd": {
+            "errors": []
+          }
+        }
+      ]
+    }
+  }
+}

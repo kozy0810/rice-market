@@ -1,5 +1,8 @@
 query CartValidationsGenerateRunInput {
   cart {
+    lines {
+      id
+    }
     buyerIdentity {
       customer {
         isMember: hasAnyTag(tags: ["member"])
