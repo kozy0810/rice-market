@@ -1,0 +1,691 @@
+<title>Devストア引き継ぎレビュー</title>
+<style>
+  :root {
+    --bg: #F2F5F6;
+    --surface: #FFFFFF;
+    --surface-sunken: #E9EEF0;
+    --ink: #16212B;
+    --ink-soft: #3C4A57;
+    --muted: #5E6C79;
+    --line: #D7DEE3;
+    --line-strong: #B9C4CC;
+    --accent: #2D5277;
+    --ok: #27624C;
+    --ok-soft: #E0EEE7;
+    --hold: #7E5A12;
+    --hold-soft: #F3EAD6;
+    --decide: #873B49;
+    --decide-soft: #F4E3E6;
+    --font-display: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Songti SC", "Noto Serif JP", serif;
+    --font-body: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "YuGothic", "Noto Sans JP", system-ui, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Noto Sans Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161A;
+      --surface: #1A2127;
+      --surface-sunken: #141A1F;
+      --ink: #E3E9ED;
+      --ink-soft: #C3CDD5;
+      --muted: #94A2AD;
+      --line: #2A333B;
+      --line-strong: #3C4751;
+      --accent: #8CB4DC;
+      --ok: #76BE9B;
+      --ok-soft: #17271F;
+      --hold: #D6A94E;
+      --hold-soft: #272016;
+      --decide: #E08E9B;
+      --decide-soft: #2A1A1E;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #11161A;
+    --surface: #1A2127;
+    --surface-sunken: #141A1F;
+    --ink: #E3E9ED;
+    --ink-soft: #C3CDD5;
+    --muted: #94A2AD;
+    --line: #2A333B;
+    --line-strong: #3C4751;
+    --accent: #8CB4DC;
+    --ok: #76BE9B;
+    --ok-soft: #17271F;
+    --hold: #D6A94E;
+    --hold-soft: #272016;
+    --decide: #E08E9B;
+    --decide-soft: #2A1A1E;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 54rem;
+    margin: 0 auto;
+    padding: 3.5rem 1.5rem 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid var(--line-strong);
+  }
+  .masthead .kicker {
+    font-size: 0.75rem;
+    letter-spacing: 0.22em;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.85rem, 5vw, 2.6rem);
+    line-height: 1.35;
+    font-weight: 600;
+    text-wrap: balance;
+    letter-spacing: 0.01em;
+  }
+  .lede {
+    color: var(--ink-soft);
+    max-width: 40rem;
+  }
+  .meta {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.5;
+    text-wrap: balance;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--line);
+  }
+  h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.8;
+    color: var(--ink);
+  }
+  h3 .chip { margin-right: 0.4rem; }
+  .section-sub { margin-top: 1.5rem; }
+  p { max-width: 40rem; }
+  a { color: var(--accent); text-underline-offset: 0.2em; }
+  a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+    background: var(--surface-sunken);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0.1em 0.35em;
+    word-break: break-all;
+  }
+  strong { font-weight: 700; }
+
+  ul, ol {
+    padding-left: 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 40rem;
+  }
+  li { padding-left: 0.2rem; }
+
+  .facts {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    padding: 1.4rem 1.6rem;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.6rem 1.6rem;
+    align-items: baseline;
+  }
+  .facts dt {
+    font-size: 0.8rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .facts dd {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    word-break: break-all;
+  }
+  @media (max-width: 34rem) {
+    .facts { grid-template-columns: 1fr; gap: 0.1rem 0; }
+    .facts dd { margin-bottom: 0.7rem; }
+  }
+
+  .note {
+    background: var(--surface-sunken);
+    border: 1px solid var(--line);
+    padding: 1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .note .note-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .note p { max-width: none; }
+
+  .scroller {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.92rem;
+    min-width: 34rem;
+  }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--line);
+    line-height: 1.7;
+  }
+  thead th {
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 700;
+    background: var(--surface-sunken);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.path {
+    font-family: var(--font-mono);
+    font-size: 0.84rem;
+    white-space: nowrap;
+  }
+
+  .chip {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+    padding: 0.1rem 0.5rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .chip + .chip { margin-left: 0.3rem; }
+  .chip-ok { color: var(--ok); background: var(--ok-soft); border: 1px solid var(--ok); }
+  .chip-hold { color: var(--hold); background: var(--hold-soft); border: 1px solid var(--hold); }
+  .chip-decide { color: var(--decide); background: var(--decide-soft); border: 1px solid var(--decide); }
+
+  .items {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+  }
+  .item {
+    display: grid;
+    grid-template-columns: 11rem 1fr;
+    gap: 0.3rem 1.5rem;
+    padding: 1.1rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .item-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .item-where {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .item-body p { max-width: none; }
+  @media (max-width: 40rem) {
+    .item { grid-template-columns: 1fr; gap: 0.5rem; }
+  }
+
+  ol.steps {
+    list-style: none;
+    padding-left: 0;
+    counter-reset: step;
+    gap: 1rem;
+    max-width: 42rem;
+  }
+  ol.steps > li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 1.9rem 1fr;
+    gap: 0.9rem;
+    padding-left: 0;
+  }
+  ol.steps > li::before {
+    content: counter(step);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    width: 1.6rem;
+    height: 1.6rem;
+    display: grid;
+    place-items: center;
+    margin-top: 0.3rem;
+  }
+  ol.steps ul {
+    margin-top: 0.3rem;
+    font-size: 0.93rem;
+    color: var(--ink-soft);
+  }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-top: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  footer p { max-width: none; }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="kicker">お米販売サイト / 開発ストア</div>
+    <h1>Devストア引き継ぎレビュー</h1>
+    <p class="lede">技能実習生向けお米販売サイトを、開発用のストアで一通り組み上げました。このページは、そのストアを引き継ぐ前に「どこまで出来ているか」「何が残っているか」をご自身の目で確かめていただくための案内です。</p>
+    <p class="meta">最終更新: 2026-10-15</p>
+  </header>
+
+  <section>
+    <h2>このページでお願いしたいこと</h2>
+    <p>見ていただきたいのは次の3つです。上から順に進めていただくのがおすすめです。</p>
+    <ol>
+      <li><strong>お客様から見た画面を触る</strong> — 会員登録から購入までを実際に通していただきます（開発ストアなので、お金は一切動きません）。</li>
+      <li><strong>管理画面を見る</strong> — 日々の運用で使う画面がどこにあるかを把握していただきます。</li>
+      <li><strong>保留項目に目を通す</strong> — 「本番ストアに移してからでないと確認できないもの」と「決めていただかないと進められないもの」が残っています。ここだけはこちらでは判断できません。</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>ストアの基本情報</h2>
+    <dl class="facts">
+      <dt>ストアURL</dt>
+      <dd><a href="https://rice-market-dev.myshopify.com/">rice-market-dev.myshopify.com</a></dd>
+      <dt>ストアパスワード</dt>
+      <dd>rteild</dd>
+      <dt>会員登録ページ</dt>
+      <dd><a href="https://rice-market-dev.myshopify.com/pages/signup-76953dbc2dbb">/pages/signup-76953dbc2dbb</a></dd>
+      <dt>管理画面</dt>
+      <dd><a href="https://admin.shopify.com/store/rice-market-dev">admin.shopify.com/store/rice-market-dev</a></dd>
+      <dt>公開中のテーマ</dt>
+      <dd>rice-market-storefront</dd>
+    </dl>
+
+    <div class="note">
+      <span class="note-label">先にお伝えしておきたいこと</span>
+      <p>管理画面の右上に表示されるストア名は <code>dev-rice-rakuraku-delivery</code> ですが、ドメインは <code>rice-market-dev.myshopify.com</code> のままです。名前とドメインが食い違って見えますが、同じ1つのストアです（表示名だけ後から変更したためです）。</p>
+      <p>また、このストアは開発用のためサイト全体にパスワードがかかっています。上記のストアパスワードを入力してからサイトに入ってください。</p>
+    </div>
+
+    <div class="note">
+      <span class="note-label">管理画面に入るための準備</span>
+      <p>管理画面は、スタッフとして招待されたアカウントでないと開けません。招待メールが届いていない場合は、先にお知らせください。招待を送りますので、メール内のリンクからアカウントを作成してください。お客様側の画面（ストアURL）は招待なしで見られます。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>お客様から見た画面を触る</h2>
+    <p>会員登録から注文完了までを通してみてください。開発ストアでは実際のクレジットカード決済・代引き・銀行振込を処理できないため、購入のテストにはShopifyのテスト決済を使います。<strong>課金は一切発生しません。</strong></p>
+    <ol class="steps">
+      <li>ストアURLを開き、ストアパスワード <code>rteild</code> を入力してサイトに入る</li>
+      <li>「商品を見る」から商品一覧・商品詳細ページを見てみる</li>
+      <li>会員登録ページ（<code>/pages/signup-76953dbc2dbb</code>）を開き、新規会員登録をしてみる
+        <ul>
+          <li>登録すると、そのままサインインした状態になります</li>
+          <li>このURLは派遣元ごとに別のページを用意する作りです。上記は「さくら」用の登録ページです</li>
+        </ul>
+      </li>
+      <li>商品をカートに入れて、チェックアウトに進む</li>
+      <li>決済情報の入力画面で、次のテスト用の値を入力する（<strong>実際のカード情報は入力しないでください</strong>）
+        <ul>
+          <li>カード番号: <code>1</code>（決済が承認される場合をシミュレートする値です）</li>
+          <li>有効期限: 未来の日付なら何でも可（例: 12/30）</li>
+          <li>セキュリティコード: 任意の3桁（例: 123）</li>
+          <li>名前・住所などは適当な値で構いません</li>
+        </ul>
+      </li>
+      <li>注文完了の画面まで進めるか確認する</li>
+    </ol>
+    <p>会員登録をしていない状態でカートから購入しようとすると、購入をブロックする仕組み（会員限定販売）が働きます。こちらも試していただくと分かりやすいです。</p>
+  </section>
+
+  <section>
+    <h2>ここまでに確認できていること</h2>
+    <p>当初ご相談いただいた要件は、すべてShopify上で実現できることを実機で確認しました。下の表は要件ごとの状況です。「仕組みは確認済み／中身が未確定」は、動く形は出来ているけれど、入れる値（料金・翻訳文など）が決まっていないものです。</p>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>要件</th><th>状況</th><th>補足</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>会員登録した人だけが買える</td>
+            <td><span class="chip chip-ok">確認済み</span></td>
+            <td>顧客の <code>member</code> タグを見て購入をブロックします。タグを外せば、すぐに購入できない状態になります</td>
+          </tr>
+          <tr>
+            <td>派遣元ごとに別の登録URL</td>
+            <td><span class="chip chip-ok">確認済み</span></td>
+            <td>推測しにくいURLの登録ページを派遣元ごとに作ります。検索エンジンにも載らないようにしてあります</td>
+          </tr>
+          <tr>
+            <td>管理画面から派遣元を追加</td>
+            <td><span class="chip chip-ok">確認済み</span></td>
+            <td>エンジニアでなくても、管理画面の入力フォームから追加できます</td>
+          </tr>
+          <tr>
+            <td>卒業（未所属になる）の処理</td>
+            <td><span class="chip chip-ok">確認済み</span></td>
+            <td>管理者がタグを外す運用に加えて、お客様ご自身がアカウント画面から卒業を申告する機能も動いています</td>
+          </tr>
+          <tr>
+            <td>転籍（別の派遣元に移る）</td>
+            <td><span class="chip chip-ok">確認済み</span></td>
+            <td>顧客のタグを入れ替えるだけです。過去の注文の記録は変わりません</td>
+          </tr>
+          <tr>
+            <td>派遣元へのロイヤリティ集計</td>
+            <td><span class="chip chip-ok">確認済み</span></td>
+            <td>注文時点の派遣元を注文側に記録するため、転籍・卒業後も過去分の集計は変わりません</td>
+          </tr>
+          <tr>
+            <td>代引き・銀行振込</td>
+            <td><span class="chip chip-ok">確認済み</span><span class="chip chip-hold">実決済は本番待ち</span></td>
+            <td>設定と管理画面の操作手順は確認済み。実際のお金の流れは本番ストアでしか試せません</td>
+          </tr>
+          <tr>
+            <td>コンビニ決済</td>
+            <td><span class="chip chip-decide">採用するか未決定</span></td>
+            <td>KOMOJUという決済代行をテストモードで導入し、支払い確認までの流れは確認済み。採用するかはご判断次第です</td>
+          </tr>
+          <tr>
+            <td>未入金の注文を自動キャンセル</td>
+            <td><span class="chip chip-ok">確認済み</span></td>
+            <td>一定期間（1週間を目安）入金がなければ自動でキャンセルし、在庫も戻ります</td>
+          </tr>
+          <tr>
+            <td>入金前の誤発送を防ぐ</td>
+            <td><span class="chip chip-ok">確認済み</span></td>
+            <td>前払いの注文は自動で発送保留＋<code>入金待ち</code> タグ。入金を確認すると自動で保留が外れ <code>発送可</code> に変わります</td>
+          </tr>
+          <tr>
+            <td>多言語（日・英・越・中）</td>
+            <td><span class="chip chip-ok">仕組みは確認済み</span><span class="chip chip-decide">翻訳文が未確定</span></td>
+            <td>チェックアウトまで多言語で表示できます。商品名・決済案内などの翻訳文はこれから入れます</td>
+          </tr>
+          <tr>
+            <td>重量別・地域別の送料</td>
+            <td><span class="chip chip-ok">仕組みは確認済み</span><span class="chip chip-decide">料金が未確定</span></td>
+            <td>配送業者と料金表が決まり次第、設定します</td>
+          </tr>
+          <tr>
+            <td>産地情報の表示（米トレーサビリティ法）</td>
+            <td><span class="chip chip-ok">確認済み</span></td>
+            <td>商品ごとに産地を持たせて表示できます。どこまで表示すべきかは専門家への確認を推奨します</td>
+          </tr>
+          <tr>
+            <td>お問い合わせフォーム</td>
+            <td><span class="chip chip-ok">確認済み</span></td>
+            <td>実際に送信・受信を確認済み。名前とメールアドレスはログイン中の情報から自動で入ります</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>管理画面の確認方法</h2>
+    <p>日々の運用で使う画面と、そこで何が確認できるかの対応です。いずれも管理画面の左メニューから辿れます。</p>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>開く場所</th><th>確認できること</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="path">お客様</td>
+            <td>会員の一覧。各顧客の「タグ」欄に <code>member</code>（購入資格）と <code>org:〇〇</code>（所属派遣元）が入っています。卒業させるときは <code>member</code> を外し、転籍のときは <code>org:</code> のタグを入れ替えます</td>
+          </tr>
+          <tr>
+            <td class="path">注文</td>
+            <td>注文の一覧。<code>入金待ち</code> / <code>発送可</code> のタグで、今どちら側のボールかが分かります。注文を開いた下部の「タイムライン」に、自動保留・保留解除・自動キャンセルの記録が時系列で残ります</td>
+          </tr>
+          <tr>
+            <td class="path">コンテンツ &gt; メタオブジェクト &gt; 派遣元組織</td>
+            <td>派遣元のマスタ。「エントリーを追加」から、組織名・識別コード（タグに使う短い英数字）・有効／無効を入力して追加します</td>
+          </tr>
+          <tr>
+            <td class="path">アプリ &gt; Flow</td>
+            <td>自動処理の一覧（前払い注文の発送保留、入金確認時の保留解除、未入金注文の自動キャンセル）。各Flowを開くと、実行履歴（いつどの注文で動いたか）も見られます</td>
+          </tr>
+          <tr>
+            <td class="path">アプリ &gt; Royalty Calculator</td>
+            <td>派遣元ごとの売上とロイヤリティの集計画面</td>
+          </tr>
+          <tr>
+            <td class="path">設定 &gt; 決済</td>
+            <td>有効な決済方法（代引き・銀行振込・テスト決済など）。銀行振込の「決済手順」欄に振込先の案内文が入ります（現在は検証用のダミー値）</td>
+          </tr>
+          <tr>
+            <td class="path">設定 &gt; 発送と配達</td>
+            <td>配送エリアと送料。現在は本州一律と北海道・沖縄の2区分で、北海道・沖縄はダミー金額です</td>
+          </tr>
+          <tr>
+            <td class="path">設定 &gt; ポリシー</td>
+            <td>利用規約・返品ポリシー・プライバシーポリシー。利用規約はShopifyの標準テンプレートのままです</td>
+          </tr>
+          <tr>
+            <td class="path">設定 &gt; 言語</td>
+            <td>追加した言語の一覧。翻訳文の入力は「Translate &amp; Adapt」アプリから行います</td>
+          </tr>
+          <tr>
+            <td class="path">設定 &gt; 通知</td>
+            <td>注文確認・発送通知などのメール文面と、差出人のメールアドレス</td>
+          </tr>
+          <tr>
+            <td class="path">商品</td>
+            <td>登録済みの商品（コシヒカリ 5kg / 10kg / 30kg）。産地などの追加情報も商品ページの下部で管理します</td>
+          </tr>
+          <tr>
+            <td class="path">オンラインストア &gt; テーマ</td>
+            <td>サイトの見た目。公開中のテーマは <code>rice-market-storefront</code> です。「カスタマイズ」から文言や並び順を編集できます</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>保留項目</h2>
+    <p>残っている項目は、性質が3つに分かれます。<strong>このうち2つ目と3つ目は、ご判断・ご用意いただかないと先に進められないものです。</strong></p>
+
+    <h3><span class="chip chip-hold">本番待ち</span>1. 本番ストア・契約がないと確認できないこと</h3>
+    <div class="items">
+      <div class="item">
+        <div class="item-head">
+          <strong>実決済の通し確認</strong>
+          <span class="item-where">代引き・銀行振込</span>
+        </div>
+        <div class="item-body">
+          <p>開発ストアでは実際の決済を通せません。管理画面側の操作手順（入金を確認して「支払い済み」にする、など）は確認済みですが、お金が動く一連の流れは本番ストアへ移してからの確認になります。</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>コンビニ決済の本番契約</strong>
+          <span class="item-where">KOMOJU</span>
+        </div>
+        <div class="item-body">
+          <p>テストモードでの動作は確認済みですが、本番で使うにはKOMOJUとの契約・審査が必要です。採用するかどうかのご判断が先になります。</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>送り状発行の費用</strong>
+          <span class="item-where">プラスシッピング</span>
+        </div>
+        <div class="item-body">
+          <p>伝票番号の自動発行には外部アプリが必要で、候補として「プラスシッピング」をインストール済みです。ただし申込みには実在の住所・氏名・電話番号が必要で、電話連絡と発送元住所への訪問調整を経てから利用開始になります。送り状1枚あたりの費用や請求先は、申込みが完了しないと確認できません。</p>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>複数拠点からの分割発送</strong>
+          <span class="item-where">既知の未確認事項</span>
+        </div>
+        <div class="item-body">
+          <p>1つの注文を複数に分けて発送する場合に、自動の発送保留が正しく働くかは未確認です。発送元が1か所の運用では問題ありません。拠点を増やす段階になったら改めて確認が必要です。</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="section-sub"><span class="chip chip-hold">差し替え</span>2. 検証用のダミー値が入っているもの</h3>
+    <p>動作確認のために仮の値を入れてある箇所です。本番公開前に実際の値へ差し替えます。</p>
+    <div class="items">
+      <div class="item">
+        <div class="item-head">
+          <strong>北海道・沖縄の送料</strong>
+          <span class="item-where">設定 &gt; 発送と配達</span>
+        </div>
+        <div class="item-body"><p>「通常配送（北海道・沖縄）【検証用ダミー】」が ¥1,500 のままです。配送業者が決まり次第、実際の加算額に差し替えます。</p></div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>重量別の送料</strong>
+          <span class="item-where">設定 &gt; 発送と配達</span>
+        </div>
+        <div class="item-body"><p>5kg / 10kg / 30kg で送料を変える仕組みは確認済みですが、現在は一律 ¥870 のままです。料金表の決定後に設定します。</p></div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>銀行振込の振込先</strong>
+          <span class="item-where">設定 &gt; 決済</span>
+        </div>
+        <div class="item-body"><p>決済手順の案内文が <code>【検証用ダミー】〇〇銀行 〇〇支店 普通 1234567 カ）テスト</code> のままです。実際の口座情報が必要です。</p></div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>利用規約</strong>
+          <span class="item-where">設定 &gt; ポリシー</span>
+        </div>
+        <div class="item-body"><p>Shopifyの標準テンプレートのままで、商号・住所・電話番号・事業者登録番号などが未入力です。</p></div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>商品</strong>
+          <span class="item-where">商品</span>
+        </div>
+        <div class="item-body"><p>コシヒカリ 5kg（¥3,000）・10kg（¥5,500）・30kg（¥15,000）は検証用に登録したものです。実際に売る商品・価格・産地・画像は改めて登録します。</p></div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>通知メールの差出人</strong>
+          <span class="item-where">設定 &gt; 通知</span>
+        </div>
+        <div class="item-body"><p>現在は開発者のメールアドレスです。本番では事業用のアドレスに差し替えます（Gmailなどのフリーメールを指定した場合、お客様には <code>store+...@shopifyemail.com</code> という差出人で届く仕様です）。</p></div>
+      </div>
+    </div>
+
+    <h3 class="section-sub"><span class="chip chip-decide">判断待ち</span>3. 決めていただく必要があること</h3>
+    <div class="items">
+      <div class="item">
+        <div class="item-head">
+          <strong>送料の実額</strong>
+          <span class="item-where">配送業者の選定</span>
+        </div>
+        <div class="item-body"><p>配送業者を決めて、重量別・地域別の料金表を確定する必要があります。ここが決まらないと、上の送料のダミー値を外せません。</p></div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>特定商取引法に基づく表記</strong>
+          <span class="item-where">事業者情報</span>
+        </div>
+        <div class="item-body"><p>事業者名・住所・連絡先の記載が必要です。住所を開示できることは確認済みですが、具体的な記載内容が未確定です。</p></div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>翻訳文の確認体制</strong>
+          <span class="item-where">多言語対応</span>
+        </div>
+        <div class="item-body"><p>下訳は生成AIで作る方針ですが、返品ポリシー・振込案内・特商法表記などの法的な文面は、母語話者による確認を推奨します。誰に見てもらうかを決める必要があります。</p></div>
+      </div>
+      <div class="item">
+        <div class="item-head">
+          <strong>コンビニ決済を採用するか</strong>
+          <span class="item-where">決済手段</span>
+        </div>
+        <div class="item-body"><p>代引きを主軸、銀行振込を補助とする方針は確定しています。コンビニ決済を加えるかは未決定です（KOMOJUが候補）。</p></div>
+      </div>
+    </div>
+
+    <div class="note section-sub">
+      <span class="note-label">運用上、先に共有しておきたいこと</span>
+      <p>銀行振込は、入金明細に注文番号が載りません（振込人名義・金額・日時のみ）。そのため注文との突き合わせは手作業になります。負担を減らすため、振込時にお名前の前に注文番号を入れていただく案内（例: 「1001 グエン」）を用意する方針です。</p>
+      <p>コンビニ決済を採用する場合、支払い待ちの注文はShopify側からキャンセルできないという制約があります。未入金の自動キャンセルまでの待機日数は、コンビニ払いの支払い期限より長く設定する必要があります。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>気づいたことの伝え方</h2>
+    <p>触っていただく中で、次のような点があれば教えてください。細かいことでも構いません。</p>
+    <ul>
+      <li>表示が崩れている箇所、日本語として不自然な文言</li>
+      <li>登録から購入までの流れで、分かりにくい・迷った操作</li>
+      <li>管理画面で「ここはどう操作するのか分からない」と感じた箇所</li>
+      <li>エラーが出た場合は、どの画面で何をしたときに起きたか</li>
+    </ul>
+    <p>「判断待ち」の項目については、現時点で決められるもの・まだ決められないものを分けて教えていただけると、こちらの進め方を組み直せます。</p>
+  </section>
+
+  <footer>
+    <p>このページは開発ストア（Devストア）の状態をまとめたものです。本番のストアは別に作り直すため、ここで登録したテスト用の会員情報・注文はそのまま引き継がれません。</p>
+    <p>ストアパスワードと登録ページのURLが記載されています。共有先にはご注意ください。</p>
+  </footer>
+
+</div>
