@@ -39,6 +39,9 @@ description: rice-marketプロジェクトのShopify（Devストア・カスタ�
   - **push直前に`git branch --show-current`で作業ツリーのブランチを確認する。** pushが送るのは「マージしたブランチの中身」ではなく「今の作業ツリーの中身」。PRをマージした後も作業ツリーが別ブランチのままだと、変更が入っていないテーマを送って「pushは成功したのに反映されない」状態になる（2026-10-15、ログインゲートのライブ反映で実際に発生）
   - push後は、ライブから対象ファイルを`shopify theme pull --only <ファイル>`で引き直し、中身が意図どおりか突き合わせる。成功メッセージだけでは反映されたか分からない
 
+- **Shopify Functionsの実行ログは Dev Dashboard の「ログ」画面（`https://dev.shopify.com/dashboard/<組織ID>/apps/<アプリID>/logs`）から読む。** 行をクリックすると入力（STDIN）と出力（STDOUT）のJSONが全文表示され、過去7日分を遡れる。CLIの`shopify app logs`は`--source`が`extensions.<ハンドル>`形式（`extension`ではない）で、かつ**非対話シェルでは「Waiting for app logs...」の直後に終了してログを待ち受けない**ため、事後調査にはDev Dashboardのほうが確実
+- **UI拡張の`api_version`は、使っているターゲットの要求バージョンと揃える。** 食い違っていると`shopify app logs`が「Type reference for <ターゲット> could not be found」で起動しない（`admin.app.home.render`は2026-07以降が必要なのに`api_version = "2026-04"`になっていた実例あり。Issue #99）。`shopify app deploy`は通ってしまうので、デプロイできること自体は整合の証拠にならない
+
 ## 記録のフォーマット
 
 検証ログに追記するときは以下を意識する。
