@@ -29,7 +29,11 @@
 
     <p class="login-gate__message">{{ 'general.login_gate.message' | t }}</p>
 
-    <a href="{{ routes.account_login_url }}" class="button login-gate__button">
+    {%- comment -%}
+      account_login_url ではなく storefront_login_url を使う。前者はログイン後に
+      アカウントの注文一覧へ着地するが、後者はゲートに当たったページへ戻る（Issue #103）。
+    {%- endcomment -%}
+    <a href="{{ routes.storefront_login_url }}" class="button login-gate__button">
       {{ 'general.login_gate.login_button' | t }}
     </a>
 
