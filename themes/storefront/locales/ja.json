@@ -1,5 +1,11 @@
 {
   "general": {
+    "login_gate": {
+      "heading": "ログインが必要です",
+      "message": "このストアは、ご登録いただいた方のみご利用いただけます。ご登録済みの方はログインしてください。",
+      "login_button": "ログインする",
+      "signup_note": "新しくご登録される方は、派遣元から案内された登録用のURLをお使いください。"
+    },
     "password_page": {
       "login_form_heading": "パスワードを入力してストアにアクセスする。",
       "login_password_button": "パスワードを入力してアクセスする",

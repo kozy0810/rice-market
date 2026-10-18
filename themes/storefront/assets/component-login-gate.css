@@ -1,0 +1,52 @@
+.login-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 3rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.login-gate__inner {
+  width: 100%;
+  max-width: 44rem;
+  text-align: center;
+}
+
+.login-gate__logo {
+  display: block;
+  margin: 0 auto 3rem;
+  max-width: 20rem;
+  height: auto;
+}
+
+.login-gate__shop-name {
+  margin: 0 0 3rem;
+}
+
+.login-gate__heading {
+  margin: 0 0 1.5rem;
+}
+
+.login-gate__message {
+  margin: 0 0 3rem;
+  color: rgba(var(--color-foreground), 0.75);
+}
+
+.login-gate__button {
+  min-width: 22rem;
+}
+
+.login-gate__note {
+  margin: 3rem 0 0;
+  font-size: 1.3rem;
+  color: rgba(var(--color-foreground), 0.6);
+}
+
+@media screen and (max-width: 749px) {
+  .login-gate__button {
+    min-width: 0;
+    width: 100%;
+  }
+}

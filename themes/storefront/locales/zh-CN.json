@@ -1,5 +1,11 @@
 {
   "general": {
+    "login_gate": {
+      "heading": "需要登录",
+      "message": "本店仅供已注册的会员使用。请登录后继续。",
+      "login_button": "登录",
+      "signup_note": "如需注册，请使用您所属机构提供的注册链接。"
+    },
     "password_page": {
       "login_form_heading": "使用密码进入商店：",
       "login_password_button": "使用密码进入",

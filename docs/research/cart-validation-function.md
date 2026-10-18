@@ -117,3 +117,92 @@ if block.settings.show_dynamic_checkout and gift_card_recipient_feature_active =
 ### 結論
 
 構成Bへの移行・アプリ再インストールを経ても、購入ゲート（チェックアウトルール有効化・動的チェックアウトボタン非表示）は壊れていない。Issue #7 の3つの完了条件（未登録者のブロック／タグ付け替えだけでの切り替え／動的チェックアウトボタン経由での誤ブロック防止）を、いずれもこの再実証で満たした。
+
+## 発見した問題: ストアフロントのログイン受け渡しがブロックされる（2026-10-15）
+
+**未ログインの訪問者がストアフロントからログインしようとすると、この関数のエラーで止まり、ログインを完了できない。** 購入どころかログインができないため、影響は購入ゲートの範囲を超える。
+
+### 症状
+
+ログイン導線をたどると、ストアフロントではなくShopifyのエラーページ（「Something went wrong.」）に着地し、本文にこの関数が返すメッセージがそのまま表示される。
+
+```
+What happened?
+Cart Error: This store is only available to registered members.
+Please check the registration URL provided by your dispatch organization.
+```
+
+エラーページの表示は実機で複数回確認している。ユーザーの報告では、このときブラウザのコンソールに 422 (Unprocessable Content) が出ていた（コンソール自体はこちらでは確認していない）。
+
+### 切り分け
+
+ゲート実装（[storefront-login-gate.md](./storefront-login-gate.md)）の検証中に発見したが、**ゲートが原因ではない。** 次の4通りを比較した。
+
+| テーマ | 導線 | 着地URL | 結果 |
+|---|---|---|---|
+| プレビュー（ゲート有り） | ゲートの「ログインする」 | `/customer_authentication/redirect?locale=ja&region_country=JP` | Cart Error |
+| ライブ（ゲート無し） | ヘッダーのアカウントアイコン →「◯◯として続行」（Shopの自動ログイン） | `/customer_authentication/login?sso=silent&return_to=/collections/all` | Cart Error |
+| ライブ（ゲート無し） | ヘッダーのアカウントアイコン →「その他のログイン方法」→ メール + 確認コード | — | Cart Error（422） |
+| どちらでも | ブラウザのアドレスバーに `/account/login` を直接入力 | `shopify.com/<shop_id>/account` | エラーは出ないが、**ストアフロント側のセッションは張られない**（Liquidの `customer` は空のまま）。ただしこれは**回避策ではない**。このとき既に`shopify.com`側のセッションが存在していたためアカウント画面へ直行しただけで、受け渡しホップ自体を通っていない。セッションを持たない訪問者が同じURLを開けば認証後に同じホップへ進む |
+
+最後の行が重要で、`shopify.com` のアカウント画面にはログイン済みとして入れるのに、ストアフロント側はログアウト扱いのままになる。ストアフロントのセッションを張るのは `/customer_authentication/...` の受け渡しホップであり、そこが上記のエラーで中断されるため、ログイン状態がストアフロントに反映されない。
+
+**原因の確定**: 管理画面 設定 > チェックアウト > チェックアウトルール で `member tag gate` を**一時的に無効化したところ、同じ導線でログインが通った**（通過後、ストアフロントの `customer` も設定され、ゲートが外れることを確認）。確認後はルールを有効に戻した。無効化で解消することから、この関数が原因と確定している。
+
+### メカニズム（実行ログで確定、2026-10-17）
+
+**ログインの受け渡しホップでもカート検証が評価され、その時点では顧客がカートに紐づいていないため `isMember` が偽になり、エラーが返っていた。** 当初は推論だったが、Dev Dashboardの実行ログで入力JSONを確認して確定した（Issue #99）。
+
+修正前（2026-10-15 19:55、ログインが Cart Error で止まっていたときの実行）:
+
+```json
+// 入力
+{ "cart": { "buyerIdentity": null }, "localization": { "language": { "isoCode": "EN" } } }
+
+// 出力
+{ "operations": [ { "validationAdd": { "errors": [
+  { "message": "This store is only available to registered members. ...", "target": "$.cart" }
+] } } ] }
+```
+
+`buyerIdentity` が `null` であること、そして**ストアフロントが日本語でもこのホップは `EN` ロケールで評価されていた**ことが分かる（エラーページが英語で出ていたのはこのため）。この時点の入力クエリは `lines` を要求していなかったため、カートの中身はログに現れていない。
+
+修正後（2026-10-15 20:30、同じ導線でログインが通ったときの実行）:
+
+```json
+// 入力
+{ "cart": { "lines": [], "buyerIdentity": null }, "localization": { "language": { "isoCode": "JA" } } }
+
+// 出力
+{ "operations": [ { "validationAdd": { "errors": [] } } ] }
+```
+
+**受け渡しホップで渡るカートは実際に空だった。** 一方、未ログインのカート追加（2026-10-17 09:49）では `"lines": [{ "id": "gid://shopify/CartLine/0" }]`・`buyerIdentity: null` が渡り、従来どおりエラーが返っている。「空カートは素通し、商品が入ったカートはブロック」という切り分けが実データで成立している。
+
+なお2026-09-22の再実証では、同じメール認証コード方式でサインインできた記録がある（上述）。**いつからこの状態になったのかは特定できていない。**
+
+### 対処（実装・検証済み）
+
+関数がエラーを返す条件に「カートに商品が入っていること」を加えた（PR #98）。入力クエリに `cart.lines` を追加し、`lines` が空のときはエラーを返さない。
+
+- ログインの受け渡しホップで渡るカートは空なので、ログインが通る
+- 未ログインでのカート追加は、追加後のカートに商品が入るため引き続きブロックされる（購入ゲートとしての機能は維持される）
+
+実機確認: ユーザーが実ブラウザでログアウト → ゲートの「ログインする」→ ログイン完了までを実施し、ゲートが外れることを確認。未ログインのカート追加は422でブロックされ、カートは空のままであることも確認済み。
+
+関数の変更には `shopify app deploy` が必要で、このリポジトリにはデプロイ事故の記録がある（`.claude/skills/shopify-dev-verification/SKILL.md` 参照）。実施前にローカルツリーの拡張機能一覧とDev Dashboardのアクティブバージョンを突き合わせること。
+
+### 実行ログの見かた
+
+**Functionの実行ログは Dev Dashboard の「ログ」画面から読むのが確実。**
+
+```
+https://dev.shopify.com/dashboard/<組織ID>/apps/<アプリID>/logs
+```
+
+行をクリックすると、呼び出しID・ターゲット・APIバージョン・命令数に加えて、**入力（STDIN）と出力（STDOUT）のJSONが全文表示される**。過去7日分を遡れるため、事後の原因調査にも使える。
+
+CLIの `shopify app logs` は次の2点に注意。
+
+- `--source` の値は `extension` ではなく `extensions.<ハンドル>`（例: `extensions.org-tag-gate`）
+- **非対話シェルでは「Waiting for app logs...」を表示した直後にプロセスが終了し、ログを待ち受けない。** リアルタイムで追いたい場合は対話的なターミナルが必要。事後調査ならDev Dashboardのほうが早い
