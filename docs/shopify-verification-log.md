@@ -1,10 +1,51 @@
 # Shopify 実現可能性 検証ログ
 
-最終更新: 2026-10-15
+最終更新: 2026-10-18
 
 対象要件は `docs/human/requirements.md`。個別の調査結果は `docs/research/` 配下にトピックごとに分けてある。**Shopifyの仕様について不明点があれば、まずこのページの一覧から該当する研究ファイルを確認する。**
 
-## 検証環境
+## 本番ストア（client transfer store、2026-10-18 作成）
+
+| 項目 | 値 |
+|---|---|
+| ドメイン | `rice-rakuraku-delivery-kvg4gdjj.myshopify.com` |
+| 管理画面 | https://admin.shopify.com/store/rice-rakuraku-delivery-kvg4gdjj |
+| 種別 | client transfer store（Dev Dashboard > Stores から作成） |
+| 機能セット | **Advanced相当**（Shopify Plusオプションは有効にしていない） |
+| 移管先 | 友人（移管は #19、移管時にクライアント側がプランを選ぶ） |
+
+**ドメインにランダムサフィックス `-kvg4gdjj` が付いている。** 希望した `rice-rakuraku-delivery` が取得済みだったため、Shopifyが自動で付与した。**myshopifyドメインは作成後に変更できない。** 表示名は変更できるが、ドメイン側のサフィックスは消せないため、表示名とドメインを完全一致させることは不可能。
+
+この制約から次が決まる。
+
+- 顧客に見せるURLは独自ドメイン前提になる（#112）。会員登録URLを派遣元に配る以上、ランダム文字列入りのドメインは実用に耐えない
+- カスタムアプリのインストールリンクはこのドメインに対して生成する（#18 → #20）
+
+**Devストアと混同しないよう注意する。** Devストアは `rice-market-dev.myshopify.com`（表示名 `dev-rice-rakuraku-delivery`）、本番は `rice-rakuraku-delivery-kvg4gdjj.myshopify.com`。表示名がどちらも `rice-rakuraku-delivery` 系になるため、**管理画面の表示名だけで見分けてはいけない。ドメインで判断する。**
+
+### 機能セットの注意（重要）
+
+client transfer store は **Advanced相当**の機能セットを持つ。
+
+> Client transfer stores include most features available on the Advanced plan.
+> If you enable Shopify Plus during store creation, the store instead mirrors Plus plan features.
+
+出典: https://shopify.dev/docs/apps/build/stores/client-transfer-stores
+
+一方、このプロジェクトの方針は **Basicプラン**（`docs/human/requirements.md`）。したがって次が成り立つ。
+
+- **本番ストアで動いたことは、Basicプランで動く証拠にならない。** 開発ストアについての同じ注意（[plan-dependent-features.md](./research/plan-dependent-features.md)）が、client transfer storeにもそのまま当てはまる
+- Basic相当のストアを用意する手段は存在しない。プラン依存の可否は公式の料金ページ・ドキュメントで確認するしかない
+- 移管後にクライアントがBasicを選んだ時点で、Advanced以上の機能に依存した設定は壊れる
+
+組織内にある間の制約（公式ドキュメント）。
+
+- パスワードページを外せない（公開は移管後 → #22）
+- 実取引を通せない。テスト決済のみ（→ #21）
+- カスタムアプリ・ドラフトアプリをインストールできない（→ #20 は移管後）
+- ファイル・ストレージの上限はBasicプラン相当
+
+## 検証環境（開発ストア）
 
 | 項目 | 値 |
 |---|---|
